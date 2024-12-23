@@ -3,7 +3,7 @@ import Navbar from './components/Navbar';
 import Feed from './pages/Feed';
 import Profile from './pages/Profile';
 import CreatePost from './pages/CreatePost';
-import ChatList from './components/ChatList';
+import ChatList from './pages/ChatList';
 import ChatRoom from './components/ChatRoom';
 
 function App() {

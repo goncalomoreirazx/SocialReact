@@ -1,6 +1,6 @@
 import { conversations, friends } from '../data/mockData';
-import ConversationItem from './chat/ConversationItem';
-import FriendsList from './chat/FriendsList';
+import ConversationItem from '../components/chat/ConversationItem';
+import FriendsList from '../components/chat/FriendsList';
 
 function ChatList() {
   return (
