@@ -1,6 +1,6 @@
 import { profileData } from '../data/mockData';
-import PhotoGrid from './profile/PhotoGrid';
-import ProfilePosts from './profile/ProfilePosts';
+import PhotoGrid from '../components/profile/PhotoGrid';
+import ProfilePosts from '../components/profile/ProfilePosts';
 
 function Profile() {
   const user = {

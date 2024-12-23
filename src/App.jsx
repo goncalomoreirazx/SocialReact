@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import Feed from './components/Feed';
-import Profile from './components/Profile';
-import CreatePost from './components/CreatePost';
+import Feed from './pages/Feed';
+import Profile from './pages/Profile';
+import CreatePost from './pages/CreatePost';
 import ChatList from './components/ChatList';
 import ChatRoom from './components/ChatRoom';
 

@@ -7,7 +7,7 @@ function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
-            SocialApp
+            Social React
           </Link>
           
           <div className="flex space-x-2">
