@@ -27,6 +27,10 @@ function Navbar() {
               <UserCircleIcon className="h-6 w-6" />
               <span className="hidden md:block">Profile</span>
             </Link>
+            <Link to="/register" className="nav-link text-gray-600">
+              <UserCircleIcon className="h-6 w-6" />
+              <span className="hidden md:block">Register</span>
+            </Link>
           </div>
         </div>
       </div>

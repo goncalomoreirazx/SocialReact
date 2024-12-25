@@ -3,7 +3,8 @@ import RegisterForm from '../components/auth/RegisterForm';
 function Register() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+      {/* Changed max-w-md to max-w-4xl for a much wider container */}
+      <div className="max-w-4xl w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Create your account
