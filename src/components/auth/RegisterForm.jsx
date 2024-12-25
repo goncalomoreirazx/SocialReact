@@ -112,14 +112,14 @@ const RegisterForm = () => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gray-100 py-12 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg p-8 md:p-12">
+    <div className="w-full bg-gray-100 py-6 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
           <div className="w-full">
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* Email Field */}
-              <div className="space-y-2">
-                <label className="text-xl text-gray-700 font-medium block">
+              <div className="space-y-1">
+                <label className="text-base text-gray-700 font-medium block">
                   Email address
                 </label>
                 <input
@@ -127,15 +127,15 @@ const RegisterForm = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full text-lg px-6 py-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full text-base px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
                   placeholder="Enter your email"
                 />
-                {errors.email && <p className="text-red-500 text-base mt-1">{errors.email}</p>}
+                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
               </div>
 
               {/* Username Field */}
-              <div className="space-y-2">
-                <label className="text-xl text-gray-700 font-medium block">
+              <div className="space-y-1">
+                <label className="text-base text-gray-700 font-medium block">
                   Username
                 </label>
                 <input
@@ -143,15 +143,15 @@ const RegisterForm = () => {
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
-                  className="w-full text-lg px-6 py-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full text-base px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
                   placeholder="Choose a username"
                 />
-                {errors.username && <p className="text-red-500 text-base mt-1">{errors.username}</p>}
+                {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username}</p>}
               </div>
 
               {/* Password Field */}
-              <div className="space-y-2">
-                <label className="text-xl text-gray-700 font-medium block">
+              <div className="space-y-1">
+                <label className="text-base text-gray-700 font-medium block">
                   Password
                 </label>
                 <div className="relative">
@@ -160,23 +160,23 @@ const RegisterForm = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full text-lg px-6 py-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    className="w-full text-base px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
                     placeholder="Create a password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2"
                   >
-                    {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
-                {errors.password && <p className="text-red-500 text-base mt-1">{errors.password}</p>}
+                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
               </div>
 
               {/* Confirm Password Field */}
-              <div className="space-y-2">
-                <label className="text-xl text-gray-700 font-medium block">
+              <div className="space-y-1">
+                <label className="text-base text-gray-700 font-medium block">
                   Confirm Password
                 </label>
                 <input
@@ -184,15 +184,15 @@ const RegisterForm = () => {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="w-full text-lg px-6 py-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full text-base px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
                   placeholder="Confirm your password"
                 />
-                {errors.confirmPassword && <p className="text-red-500 text-base mt-1">{errors.confirmPassword}</p>}
+                {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
               </div>
 
               {/* Birth Date Field */}
-              <div className="space-y-2">
-                <label className="text-xl text-gray-700 font-medium block">
+              <div className="space-y-1">
+                <label className="text-base text-gray-700 font-medium block">
                   Birth Date
                 </label>
                 <input
@@ -200,14 +200,14 @@ const RegisterForm = () => {
                   name="birthDate"
                   value={formData.birthDate}
                   onChange={handleChange}
-                  className="w-full text-lg px-6 py-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full text-base px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
                 />
-                {errors.birthDate && <p className="text-red-500 text-base mt-1">{errors.birthDate}</p>}
+                {errors.birthDate && <p className="text-red-500 text-sm mt-1">{errors.birthDate}</p>}
               </div>
 
               {/* Profile Picture Field */}
-              <div className="space-y-4">
-                <label className="text-xl text-gray-700 font-medium block">
+              <div className="space-y-2">
+                <label className="text-base text-gray-700 font-medium block">
                   Profile Picture
                 </label>
                 <input
@@ -220,16 +220,16 @@ const RegisterForm = () => {
                 />
                 <label
                   htmlFor="profile-picture"
-                  className="cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-600 text-lg font-semibold py-4 px-6 rounded-lg flex items-center justify-center border-2 border-blue-300 w-full"
+                  className="cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-600 text-base font-semibold py-2 px-4 rounded-md flex items-center justify-center border border-blue-300 w-full"
                 >
                   Upload Profile Picture
                 </label>
                 {previewImage && (
-                  <div className="mt-4 flex justify-center">
+                  <div className="mt-3 flex justify-center">
                     <img
                       src={previewImage}
                       alt="Profile preview"
-                      className="w-32 h-32 object-cover rounded-full"
+                      className="w-24 h-24 object-cover rounded-full"
                     />
                   </div>
                 )}
@@ -237,16 +237,16 @@ const RegisterForm = () => {
 
               {/* General Error Message */}
               {errors.general && (
-                <div className="text-red-500 text-lg mt-4 text-center">
+                <div className="text-red-500 text-base mt-3 text-center">
                   {errors.general}
                 </div>
               )}
 
               {/* Submit Button */}
-              <div className="pt-6">
+              <div className="pt-4">
                 <button
                   type="submit"
-                  className="w-full bg-blue-600 text-white text-xl font-semibold rounded-lg px-8 py-4 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 transition duration-300"
+                  className="w-full bg-blue-600 text-white text-base font-semibold rounded-md px-6 py-3 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-300"
                 >
                   Create Account
                 </button>
@@ -260,4 +260,3 @@ const RegisterForm = () => {
 };
 
 export default RegisterForm;
-
