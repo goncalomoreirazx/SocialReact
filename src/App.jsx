@@ -5,6 +5,7 @@ import Profile from './pages/Profile';
 import CreatePost from './pages/CreatePost';
 import ChatList from './pages/ChatList';
 import ChatRoom from './components/ChatRoom';
+import Register from './pages/Register';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
             <Route path="/create" element={<CreatePost />} />
             <Route path="/messages" element={<ChatList />} />
             <Route path="/chat/:id" element={<ChatRoom />} />
+            <Route path="/register" element={<Register />} />
           </Routes>
         </main>
       </div>
