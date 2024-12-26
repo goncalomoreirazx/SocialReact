@@ -90,22 +90,28 @@ const RegisterForm = () => {
     if (validateForm()) {
       const submitData = new FormData();
       Object.keys(formData).forEach(key => {
-        submitData.append(key, formData[key]);
+        if (key !== 'confirmPassword') { // Don't send confirmPassword to backend
+          submitData.append(key, formData[key]);
+        }
       });
-
+  
       try {
-        const response = await fetch('/api/register', {
+        const response = await fetch('http://localhost:5000/api/auth/register', {
           method: 'POST',
-          body: submitData
+          body: submitData // Keep FormData for file upload
         });
-
+  
         if (response.ok) {
-          console.log('Registration successful');
-        } else {
+          // Handle successful registration
           const data = await response.json();
-          setErrors(data.errors || { general: 'Registration failed' });
+          console.log('Registration successful', data);
+          // You might want to redirect or show a success message
+        } else {
+          const errorData = await response.json();
+          setErrors(errorData.errors || { general: errorData.message || 'Registration failed' });
         }
       } catch (error) {
+        console.error('Registration error:', error);
         setErrors({ general: 'Network error occurred' });
       }
     }

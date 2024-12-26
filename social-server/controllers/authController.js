@@ -4,34 +4,38 @@ import jwt from 'jsonwebtoken';
 import db from '../db/connection.js';
 
 export const register = async (req, res) => {
-  try {
-    const { email, username, password, birthDate } = req.body;
-
-    const [existingUsers] = await db.promise().query(
-      'SELECT * FROM users WHERE email = ? OR username = ?',
-      [email, username]
-    );
-
-    if (existingUsers.length > 0) {
-      return res.status(400).json({ message: 'Email or username already exists' });
+    try {
+      console.log('Received registration request:', req.body);
+      const { email, username, password, birthDate } = req.body;
+  
+      // Log to check if we're getting all fields
+      console.log('Parsed data:', { email, username, password, birthDate });
+  
+      const [existingUsers] = await db.promise().query(
+        'SELECT * FROM users WHERE email = ? OR username = ?',
+        [email, username]
+      );
+  
+      if (existingUsers.length > 0) {
+        return res.status(400).json({ message: 'Email or username already exists' });
+      }
+  
+      const hashedPassword = await bcrypt.hash(password, 10);
+  
+      const [result] = await db.promise().query(
+        'INSERT INTO users (email, username, password, birth_date) VALUES (?, ?, ?, ?)',
+        [email, username, hashedPassword, birthDate]
+      );
+  
+      res.status(201).json({ 
+        message: 'User registered successfully',
+        userId: result.insertId 
+      });
+    } catch (error) {
+      console.error('Detailed registration error:', error);
+      res.status(500).json({ message: 'Error registering user', error: error.message });
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const [result] = await db.promise().query(
-      'INSERT INTO users (email, username, password, birth_date) VALUES (?, ?, ?, ?)',
-      [email, username, hashedPassword, birthDate]
-    );
-
-    res.status(201).json({ 
-      message: 'User registered successfully',
-      userId: result.insertId 
-    });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Error registering user' });
-  }
-};
+  };
 
 export const login = async (req, res) => {
   try {
