@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import React, { Suspense } from 'react';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Feed from './pages/Feed';
@@ -11,6 +12,7 @@ import Register from './pages/Register';
 
 function App() {
   return (
+    <Suspense fallback={<div>Loading...</div>}>
     <Router>
       <AuthProvider>
         <div className="min-h-screen bg-gray-100">
@@ -19,7 +21,7 @@ function App() {
           <Routes>
             <Route path="/register" element={<Register />} />
             <Route path="/" element={<Feed />} /> {/* Removed ProtectedRoute */}
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><ChatList /></ProtectedRoute>} />
             <Route path="/chat/:id" element={<ProtectedRoute><ChatRoom /></ProtectedRoute>} />
@@ -28,6 +30,7 @@ function App() {
         </div>
       </AuthProvider>
     </Router>
+     </Suspense>
   );
 }
 

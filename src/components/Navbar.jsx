@@ -33,7 +33,7 @@ function Navbar() {
                     <PlusCircleIcon className="h-6 w-6" />
                     <span className="hidden md:block">Create</span>
                   </Link>
-                  <Link to="/profile" className="nav-link text-gray-600">
+                  <Link to={`/profile/${user.id}`} className="nav-link text-gray-600">
                     <UserCircleIcon className="h-6 w-6" />
                     <span className="hidden md:block">Profile</span>
                   </Link>
