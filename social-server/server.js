@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import db from './db/connection.js';
 import authRouter from './routes/authRouter.js';
 import userRouter from './routes/userRouter.js';
+import postsRouter from './routes/postsRouter.js';
 dotenv.config();
 
 const app = express();
@@ -34,6 +35,8 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
+app.use('/api/posts', postsRouter);
+
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

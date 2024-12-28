@@ -1,39 +1,55 @@
-import { Post } from '../components/Post';
+import React, { useState, useEffect } from "react";
+import Post from "../components/Post";
+import Posts from "../components/Posts";
 
 function Feed() {
-  const posts = [
-    {
-      id: 1,
-      user: 'Sarah Wilson',
-      content: 'Just finished hiking Mount Rainier! The views were absolutely breathtaking 🏔️',
-      image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1200',
-      likes: 156,
-      comments: 23,
-      timestamp: new Date('2024-03-10T16:30:00'),
-    },
-    {
-      id: 2,
-      user: 'John Doe',
-      content: 'Just had an amazing day at the beach! 🏖️',
-      likes: 24,
-      comments: 5,
-      timestamp: new Date('2024-03-10T15:30:00'),
-    },
-    {
-      id: 3,
-      user: 'Jane Smith',
-      content: 'Check out my new photography project! 📸',
-      likes: 42,
-      comments: 8,
-      timestamp: new Date('2024-03-10T14:15:00'),
-    },
-  ];
+  const [allPosts, setAllPosts] = useState([]);
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const fetchPosts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/posts', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAllPosts(data.posts);
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    }
+  };
+
+  const handlePostCreated = (newPost) => {
+    const formattedPost = {
+      ...newPost,
+      user: newPost.username,
+      timestamp: new Date(newPost.created_at),
+      // Convert server image path to full URL if it exists
+      image: newPost.image ? `http://localhost:5000${newPost.image}` : null
+    };
+    
+    setAllPosts(prevPosts => [formattedPost, ...prevPosts]);
+  };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {posts.map(post => (
-        <Post key={post.id} post={post} />
-      ))}
+    <div className="max-w-2xl mx-auto py-8 px-4">
+      <div className="mb-8">
+        <Posts onPostCreated={handlePostCreated} />
+      </div>
+      
+      <div className="space-y-6">
+        {allPosts.map(post => (
+          <Post key={post.id} post={post} />
+        ))}
+      </div>
     </div>
   );
 }
