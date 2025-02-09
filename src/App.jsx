@@ -9,6 +9,8 @@ import CreatePost from './pages/CreatePost';
 import ChatList from './pages/ChatList';
 import ChatRoom from './components/ChatRoom';
 import Register from './pages/Register';
+import FindFriends from './pages/FindFriends';
+
 
 function App() {
   return (
@@ -25,6 +27,7 @@ function App() {
             <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><ChatList /></ProtectedRoute>} />
             <Route path="/chat/:id" element={<ProtectedRoute><ChatRoom /></ProtectedRoute>} />
+            <Route path="/find-friends" element={<ProtectedRoute><FindFriends /></ProtectedRoute>} />
           </Routes>
           </main>
         </div>

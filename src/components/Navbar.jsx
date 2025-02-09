@@ -25,6 +25,10 @@ function Navbar() {
               
               {user ? (
                 <>
+                  <Link to="/find-friends" className="nav-link text-gray-600">
+                    <ChatBubbleLeftIcon className="h-6 w-6" />
+                    <span className="hidden md:block">FindFriends</span>
+                  </Link>
                   <Link to="/messages" className="nav-link text-gray-600">
                     <ChatBubbleLeftIcon className="h-6 w-6" />
                     <span className="hidden md:block">Messages</span>

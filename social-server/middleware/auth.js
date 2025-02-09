@@ -13,7 +13,7 @@ export const verifyToken = (req, res, next) => {
       return res.status(401).json({ message: 'Invalid token format. Token must be Bearer token.' });
     }
 
-    // Extract the token (remove 'Bearer ' from the start)
+    // Extract the token
     const token = authHeader.split(' ')[1];
 
     if (!token) {
@@ -22,7 +22,7 @@ export const verifyToken = (req, res, next) => {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-      req.user = decoded;
+      req.user = decoded; // This will contain { userId: xxx, email: xxx }
       next();
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
