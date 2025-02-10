@@ -10,13 +10,14 @@ import ChatList from './pages/ChatList';
 import ChatRoom from './components/ChatRoom';
 import Register from './pages/Register';
 import FindFriends from './pages/FindFriends';
-
+import { SocketProvider } from './contexts/SocketContext';
 
 function App() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
     <Router>
       <AuthProvider>
+      <SocketProvider>
         <div className="min-h-screen bg-gray-100">
           <Navbar />
           <main className="container mx-auto px-4 py-8">
@@ -31,6 +32,7 @@ function App() {
           </Routes>
           </main>
         </div>
+        </SocketProvider>
       </AuthProvider>
     </Router>
      </Suspense>

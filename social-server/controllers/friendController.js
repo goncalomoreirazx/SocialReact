@@ -94,7 +94,7 @@ export const sendFriendRequest = async (req, res) => {
           u.profile_picture,
           u.last_active as lastSeen,
           CASE 
-            WHEN u.last_active >= NOW() - INTERVAL 5 MINUTE THEN 'online'
+            WHEN u.last_active >= NOW() - INTERVAL 30 SECOND THEN 'online'
             ELSE 'offline'
           END as status
         FROM friends f

@@ -1,44 +1,31 @@
+// FriendsList.jsx
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSocket } from '../../contexts/SocketContext';
 
-function FriendsList() {
-  const [friends, setFriends] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { token } = useAuth();
-
-  const fetchFriends = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/api/friends/list', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch friends');
-      const data = await response.json();
-      setFriends(data);
-    } catch (error) {
-      console.error('Error fetching friends:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+function FriendsList({ friends }) {
+  const socket = useSocket();
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   useEffect(() => {
-    if (token) {
-      fetchFriends();
-      // Refresh friend list every 30 seconds
-      const interval = setInterval(fetchFriends, 30000);
-      return () => clearInterval(interval);
+    if (socket) {
+      socket.on('user_status', ({ userId, status }) => {
+        setOnlineUsers(prev => {
+          const newSet = new Set(prev);
+          if (status === 'online') {
+            newSet.add(userId);
+          } else {
+            newSet.delete(userId);
+          }
+          return newSet;
+        });
+      });
     }
-  }, [token]);
+  }, [socket]);
 
-  if (loading) {
-    return <div className="bg-white rounded-lg shadow-md p-4">Loading friends...</div>;
-  }
-
-  const onlineFriends = friends.filter(friend => friend.status === 'online');
-  const offlineFriends = friends.filter(friend => friend.status === 'offline');
+  const onlineFriends = friends.filter(friend => onlineUsers.has(friend.id));
+  const offlineFriends = friends.filter(friend => !onlineUsers.has(friend.id));
 
   return (
     <div className="bg-white rounded-lg shadow-md p-4">
@@ -46,13 +33,15 @@ function FriendsList() {
       
       {/* Online Friends */}
       <div className="mb-6">
-        <h4 className="text-sm font-medium text-gray-500 mb-3">Online - {onlineFriends.length}</h4>
+        <h4 className="text-sm font-medium text-gray-500 mb-3">
+          Online - {onlineFriends.length}
+        </h4>
         <div className="space-y-3">
           {onlineFriends.map(friend => (
-            <div key={friend.id} className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <div className="avatar">
+            <Link to={`/chat/${friend.id}`} key={friend.id}>
+              <div className="flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
                     {friend.profile_picture ? (
                       <img 
                         src={`http://localhost:5000/uploads/${friend.profile_picture}`}
@@ -60,46 +49,56 @@ function FriendsList() {
                         className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-300"></div>
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                        <span className="text-lg text-gray-500">
+                          {friend.username[0].toUpperCase()}
+                        </span>
+                      </div>
                     )}
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                   </div>
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                  <span className="font-medium text-gray-900">{friend.username}</span>
                 </div>
-                <span className="font-medium text-gray-900">{friend.username}</span>
+                <span className="text-sm text-green-500">Active now</span>
               </div>
-              <span className="text-sm text-green-500">Active now</span>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
 
       {/* Offline Friends */}
       <div>
-        <h4 className="text-sm font-medium text-gray-500 mb-3">Offline - {offlineFriends.length}</h4>
+        <h4 className="text-sm font-medium text-gray-500 mb-3">
+          Offline - {offlineFriends.length}
+        </h4>
         <div className="space-y-3">
           {offlineFriends.map(friend => (
-            <div key={friend.id} className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <div className="avatar opacity-75">
+            <Link to={`/chat/${friend.id}`} key={friend.id}>
+              <div className="flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
                     {friend.profile_picture ? (
                       <img 
                         src={`http://localhost:5000/uploads/${friend.profile_picture}`}
                         alt={friend.username}
-                        className="w-10 h-10 rounded-full object-cover"
+                        className="w-10 h-10 rounded-full object-cover opacity-75"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-300"></div>
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center opacity-75">
+                        <span className="text-lg text-gray-500">
+                          {friend.username[0].toUpperCase()}
+                        </span>
+                      </div>
                     )}
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div>
                   </div>
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div>
+                  <span className="font-medium text-gray-600">{friend.username}</span>
                 </div>
-                <span className="font-medium text-gray-600">{friend.username}</span>
+                <span className="text-sm text-gray-500">
+                  {friend.last_seen && formatDistanceToNow(new Date(friend.last_seen), { addSuffix: true })}
+                </span>
               </div>
-              <span className="text-sm text-gray-500">
-                {friend.lastSeen ? formatDistanceToNow(new Date(friend.lastSeen), { addSuffix: true }) : 'Never'}
-              </span>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
