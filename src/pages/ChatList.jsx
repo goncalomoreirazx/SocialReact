@@ -10,36 +10,30 @@ function ChatList() {
   const { token } = useAuth();
 
   useEffect(() => {
-    const fetchConversations = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/messages/conversations', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        const data = await response.json();
-        setConversations(data);
-      } catch (error) {
-        console.error('Error fetching conversations:', error);
-      }
-    };
-
     const fetchFriends = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/friends', {
+        console.log('Fetching friends with token:', token); // Debug log
+        const response = await fetch('http://localhost:5000/api/friends/list', { // Changed endpoint
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('Fetched friends:', data);
         setFriends(data);
       } catch (error) {
         console.error('Error fetching friends:', error);
       }
     };
 
-    fetchConversations();
-    fetchFriends();
+    if (token) { // Only fetch if we have a token
+      fetchFriends();
+    }
   }, [token]);
 
   return (
