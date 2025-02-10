@@ -81,7 +81,7 @@ const Profile = () => {
                <span className="block text-2xl font-bold text-gray-900">
                  {user.following}
                </span>
-               <span className="text-gray-500">Following</span>
+               <span className="text-gray-500">Friends</span>
              </div>
            </div>
          </div>

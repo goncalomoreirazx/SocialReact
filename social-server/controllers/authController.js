@@ -77,3 +77,26 @@ export const login = async (req, res) => {
     res.status(500).json({ message: 'Error during login' });
   }
 };
+
+export const updateLastActive = async (userId) => {
+  try {
+    await db.promise().query(
+      'UPDATE users SET last_active = CURRENT_TIMESTAMP WHERE id = ?',
+      [userId]
+    );
+  } catch (error) {
+    console.error('Error updating last_active:', error);
+  }
+};
+
+// Add this function
+export const updateActivity = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    await updateLastActive(userId);
+    res.json({ message: 'Activity updated' });
+  } catch (error) {
+    console.error('Error updating activity:', error);
+    res.status(500).json({ message: 'Error updating activity' });
+  }
+};

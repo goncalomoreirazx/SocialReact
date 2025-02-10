@@ -1,5 +1,6 @@
 import express from 'express';
-import { register, login } from '../controllers/authController.js';
+import { register, login, updateActivity } from '../controllers/authController.js';
+import { verifyToken } from '../middleware/auth.js';
 import multer from 'multer';
 import path from 'path';  // Add this import for path.extname
 
@@ -20,5 +21,6 @@ const upload = multer({ storage: storage });
 // Define routes - only one register route with multer middleware
 router.post('/register', upload.single('profilePicture'), register);
 router.post('/login', login);
+router.post('/update-activity', verifyToken, updateActivity);
 
 export default router;

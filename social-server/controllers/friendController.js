@@ -1,4 +1,5 @@
 import db from '../db/connection.js';
+import { updateLastActive } from './authController.js';
 
 export const sendFriendRequest = async (req, res) => {
     try {
@@ -82,14 +83,25 @@ export const sendFriendRequest = async (req, res) => {
   export const getFriendsList = async (req, res) => {
     try {
       const userId = req.user.userId;
+      
+      // Update last_active when user fetches friends list
+      await updateLastActive(userId);
   
       const [friends] = await db.promise().query(
-        `SELECT u.id, u.username, u.profile_picture 
-         FROM friends f 
-         JOIN users u ON (f.friend_id = u.id OR f.user_id = u.id)
-         WHERE (f.user_id = ? OR f.friend_id = ?) 
-         AND f.status = "accepted"
-         AND u.id != ?`,
+        `SELECT 
+          u.id, 
+          u.username,
+          u.profile_picture,
+          u.last_active as lastSeen,
+          CASE 
+            WHEN u.last_active >= NOW() - INTERVAL 5 MINUTE THEN 'online'
+            ELSE 'offline'
+          END as status
+        FROM friends f
+        JOIN users u ON (f.friend_id = u.id OR f.user_id = u.id)
+        WHERE (f.user_id = ? OR f.friend_id = ?)
+          AND f.status = "accepted"
+          AND u.id != ?`,
         [userId, userId, userId]
       );
   
