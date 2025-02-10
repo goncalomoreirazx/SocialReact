@@ -22,7 +22,7 @@ export const verifyToken = (req, res, next) => {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-      req.user = decoded; // This will contain { userId: xxx, email: xxx }
+      req.user = decoded; // Contains { userId: xxx, email: xxx }
       next();
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
@@ -33,5 +33,14 @@ export const verifyToken = (req, res, next) => {
   } catch (error) {
     console.error('Auth middleware error:', error);
     return res.status(500).json({ message: 'Internal server error during authentication.' });
+  }
+};
+
+// Export token verification function for socket.io
+export const verifySocketToken = (token) => {
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+  } catch (error) {
+    throw new Error('Invalid token');
   }
 };

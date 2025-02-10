@@ -1,4 +1,3 @@
-// src/contexts/SocketContext.jsx
 import { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
@@ -7,36 +6,34 @@ const SocketContext = createContext();
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      const newSocket = io('http://localhost:5000', {
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      });
+    if (!user || !token) return;
 
-      newSocket.on('connect', () => {
-        console.log('Socket connected');
-        newSocket.emit('user_connected', user.id);
-      });
+    const newSocket = io('http://localhost:5000', {
+      autoConnect: false,
+      auth: { token },
+      transports: ['polling', 'websocket']
+    });
 
-      newSocket.on('connect_error', (error) => {
-        console.error('Socket connection error:', error);
-      });
+    newSocket.connect();
 
-      newSocket.on('disconnect', (reason) => {
-        console.log('Socket disconnected:', reason);
-      });
+    newSocket.on('connect', () => {
+      console.log('Connected to socket');
+      newSocket.emit('user_connected', user.id);
+    });
 
-      setSocket(newSocket);
+    newSocket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+    });
 
-      return () => {
-        newSocket.close();
-      };
-    }
-  }, [user]);
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.close();
+    };
+  }, [user, token]);
 
   return (
     <SocketContext.Provider value={socket}>

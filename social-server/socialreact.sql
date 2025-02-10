@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS `friends` (
   CONSTRAINT `friends_ibfk_2` FOREIGN KEY (`friend_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- A despejar dados para tabela socialreact.friends: ~0 rows (aproximadamente)
+-- A despejar dados para tabela socialreact.friends: ~2 rows (aproximadamente)
 INSERT INTO `friends` (`id`, `user_id`, `friend_id`, `created_at`, `status`) VALUES
 	(1, 2, 3, '2025-02-09 18:00:15', 'pending'),
 	(3, 2, 6, '2025-02-09 18:13:16', 'accepted');
@@ -78,7 +78,12 @@ CREATE TABLE IF NOT EXISTS `messages` (
   CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`receiver_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- A despejar dados para tabela socialreact.messages: ~0 rows (aproximadamente)
+-- A despejar dados para tabela socialreact.messages: ~4 rows (aproximadamente)
+INSERT INTO `messages` (`id`, `sender_id`, `receiver_id`, `content`, `sent_at`) VALUES
+	(1, 2, 6, 'allo', '2025-02-10 13:05:56'),
+	(2, 6, 2, 'ta tudo?', '2025-02-10 13:07:06'),
+	(3, 2, 6, 'allo', '2025-02-10 13:11:38'),
+	(4, 6, 2, 'acho que nao esta a funcionar corretamente', '2025-02-10 13:11:57');
 
 -- A despejar estrutura para tabela socialreact.posts
 CREATE TABLE IF NOT EXISTS `posts` (
@@ -115,10 +120,10 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 -- A despejar dados para tabela socialreact.users: ~4 rows (aproximadamente)
 INSERT INTO `users` (`id`, `email`, `username`, `password`, `profile_picture`, `birth_date`, `created_at`, `bio`, `last_active`) VALUES
-	(2, 'goncalomoreira373@gmail.com', 'SlayerX', '$2b$10$ACW/Nr02B1a13Z.cyCRj5uDLzgv7JOlRCDw/AzB9DzQOClcrdzqs2', 'photo-1735309004819-95804124.jpg', '1999-10-05', '2024-12-26 18:45:51', 'Sou lindo #CR7 éué\r\n', '2025-02-10 12:12:58'),
+	(2, 'goncalomoreira373@gmail.com', 'SlayerX', '$2b$10$ACW/Nr02B1a13Z.cyCRj5uDLzgv7JOlRCDw/AzB9DzQOClcrdzqs2', 'photo-1735309004819-95804124.jpg', '1999-10-05', '2024-12-26 18:45:51', 'Sou lindo #CR7 éué\r\n', '2025-02-10 15:24:55'),
 	(3, 'slayerxd998@gmail.com', 'Rhakeid', '$2b$10$t4FRpiyrJqzzb2pahByNUelGDDu3787SjLeQ8APVHk.tn0zNCu1XO', 'profilePicture-1735242657189-85347727.jpg', '1999-10-10', '2024-12-26 19:50:57', NULL, NULL),
 	(4, 'ragusen@gmail.com', 'Ragusen', 'Kunalo9990', NULL, '2025-02-09', '2025-02-09 16:30:05', NULL, NULL),
-	(6, 'asuk@gmail.com', 'Asuk', '$2b$10$E/xNPKOv2N8QOdMOZnAXPuyA7zb9vI6AGM8XMFleAF/E2SzphvKJS', 'profilePicture-1739124749584-142862384.jpg', '1998-11-04', '2025-02-09 18:12:29', NULL, '2025-02-10 12:12:52');
+	(6, 'asuk@gmail.com', 'Asuk', '$2b$10$E/xNPKOv2N8QOdMOZnAXPuyA7zb9vI6AGM8XMFleAF/E2SzphvKJS', 'profilePicture-1739124749584-142862384.jpg', '1998-11-04', '2025-02-09 18:12:29', NULL, '2025-02-10 13:07:00');
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;

@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
+import db from './db/connection.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import authRouter from './routes/authRouter.js';
@@ -15,32 +17,29 @@ dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: 'http://localhost:5173',
-    methods: ['GET', 'POST']
-  }
-});
-
 const PORT = process.env.PORT || 5000;
 
-//images
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// CORS Configuration
-app.use(cors({
+// CORS configuration
+const corsOptions = {
   origin: 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+  credentials: true
+};
 
-app.options('*', cors());
+// Initialize Socket.IO with CORS
+const io = new Server(httpServer, {
+  cors: corsOptions,
+  allowEIO3: true
+});
 
-// Middlewares
+// Configure __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Middleware
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes
@@ -50,32 +49,75 @@ app.use('/api/posts', postsRouter);
 app.use('/api/friends', friendRouter);
 app.use('/api/messages', messagesRouter);
 
-// Socket.IO connection handling
-// Socket.IO connection handling
+// Socket authentication middleware
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token;
+    
+    if (!token) {
+      return next(new Error('No token provided'));
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    
+    const [users] = await db.promise().query(
+      'SELECT id, email, username FROM users WHERE id = ?',
+      [decoded.userId]
+    );
+
+    if (users.length === 0) {
+      return next(new Error('User not found'));
+    }
+
+    socket.user = decoded;
+    next();
+  } catch (error) {
+    console.error('Socket auth error:', error);
+    next(new Error('Invalid token'));
+  }
+});
+
+// Connected users map
 const connectedUsers = new Map();
 
+// Socket connection handler
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  // User connects with their ID
-  socket.on('user_connected', (userId) => {
-    console.log('User registered:', userId);
-    connectedUsers.set(userId, socket.id);
-    
-    // Broadcast user's online status to others
-    socket.broadcast.emit('user_status', {
-      userId: userId,
-      status: 'online'
-    });
+  socket.on('user_connected', async (userId) => {
+    try {
+      if (userId !== socket.user.userId) {
+        throw new Error('User ID mismatch');
+      }
+
+      await db.promise().query(
+        'UPDATE users SET last_active = CURRENT_TIMESTAMP WHERE id = ?',
+        [userId]
+      );
+
+      connectedUsers.set(userId, socket.id);
+      
+      socket.broadcast.emit('user_status', {
+        userId: userId,
+        status: 'online'
+      });
+
+      socket.emit('online_users', Array.from(connectedUsers.keys()));
+      console.log('User registered:', userId);
+    } catch (error) {
+      console.error('Error in user_connected:', error);
+      socket.emit('error', { message: 'Failed to register user connection' });
+    }
   });
 
-  // Handle new messages
   socket.on('send_message', async (data) => {
     try {
       const { senderId, receiverId, content } = data;
-      const receiverSocketId = connectedUsers.get(receiverId);
+      
+      if (senderId !== socket.user.userId) {
+        throw new Error('Unauthorized message sender');
+      }
 
-      // Store message in database
       const [result] = await db.promise().query(
         'INSERT INTO messages (sender_id, receiver_id, content) VALUES (?, ?, ?)',
         [senderId, receiverId, content]
@@ -91,12 +133,11 @@ io.on('connection', (socket) => {
         [result.insertId]
       );
 
-      // Send to receiver if they're online
+      const receiverSocketId = connectedUsers.get(receiverId);
       if (receiverSocketId) {
         io.to(receiverSocketId).emit('receive_message', newMessage[0]);
       }
 
-      // Send back to sender for confirmation
       socket.emit('message_sent', newMessage[0]);
       
     } catch (error) {
@@ -105,44 +146,51 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle typing status
-  socket.on('typing_start', ({ senderId, receiverId }) => {
+  socket.on('typing_start', ({ receiverId }) => {
     const receiverSocketId = connectedUsers.get(receiverId);
     if (receiverSocketId) {
       io.to(receiverSocketId).emit('typing_status', {
-        userId: senderId,
+        userId: socket.user.userId,
         isTyping: true
       });
     }
   });
 
-  socket.on('typing_stop', ({ senderId, receiverId }) => {
+  socket.on('typing_stop', ({ receiverId }) => {
     const receiverSocketId = connectedUsers.get(receiverId);
     if (receiverSocketId) {
       io.to(receiverSocketId).emit('typing_status', {
-        userId: senderId,
+        userId: socket.user.userId,
         isTyping: false
       });
     }
   });
 
-  // Handle disconnection
-  socket.on('disconnect', () => {
-    const userId = [...connectedUsers.entries()]
-      .find(([_, socketId]) => socketId === socket.id)?.[0];
-    
-    if (userId) {
-      connectedUsers.delete(userId);
-      // Broadcast user's offline status
-      socket.broadcast.emit('user_status', {
-        userId: userId,
-        status: 'offline'
-      });
+  socket.on('disconnect', async () => {
+    try {
+      const userId = socket.user?.userId;
+      
+      if (userId) {
+        await db.promise().query(
+          'UPDATE users SET last_active = CURRENT_TIMESTAMP WHERE id = ?',
+          [userId]
+        );
+
+        connectedUsers.delete(userId);
+        
+        socket.broadcast.emit('user_status', {
+          userId: userId,
+          status: 'offline'
+        });
+        
+        console.log('User disconnected:', userId);
+      }
+    } catch (error) {
+      console.error('Error handling disconnect:', error);
     }
   });
 });
 
-// Only use httpServer.listen(), remove app.listen()
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
