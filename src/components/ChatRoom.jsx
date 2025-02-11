@@ -6,6 +6,7 @@ import ChatHeader from './chat/ChatHeader';
 import ChatMessage from './chat/ChatMessage';
 import MessageInput from './chat/MessageInput';
 import { useSocket } from '../contexts/SocketContext';
+import { ReplyIcon, X } from 'lucide-react';
 
 function ChatRoom() {
   const { id: friendId } = useParams();
@@ -15,6 +16,7 @@ function ChatRoom() {
   const [messages, setMessages] = useState([]);
   const [friend, setFriend] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -104,12 +106,21 @@ function ChatRoom() {
     scrollToBottom();
   }, [messages]);
 
+  const handleReply = (message) => {
+    setReplyingTo(message);
+  };
+
   const handleSendMessage = async (content) => {
     if (!content.trim()) return;
-
+  
     try {
-      const newMessage = await sendMessage(parseInt(friendId), content);
+      const newMessage = await sendMessage(
+        parseInt(friendId), 
+        content, 
+        replyingTo?.id || null
+      );
       setMessages(prev => [...prev, newMessage]);
+      setReplyingTo(null);
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -139,7 +150,8 @@ function ChatRoom() {
               message={{
                 ...message,
                 isSentByUser: message.sender_id === user.id
-              }} 
+              }}
+              onReply={handleReply}
             />
           ))}
           {isTyping && (
@@ -156,7 +168,29 @@ function ChatRoom() {
           <div ref={messagesEndRef} />
         </div>
 
-        <MessageInput onSubmit={handleSendMessage} friendId={parseInt(friendId)} />
+        {replyingTo && (
+          <div className="px-4 py-2 bg-gray-50 border-t flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <ReplyIcon className="h-4 w-4 text-gray-500" />
+              <span className="text-sm text-gray-600">
+                Replying to: {replyingTo.content.substring(0, 50)}
+                {replyingTo.content.length > 50 ? '...' : ''}
+              </span>
+            </div>
+            <button 
+              onClick={() => setReplyingTo(null)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        <MessageInput 
+          onSubmit={handleSendMessage} 
+          friendId={parseInt(friendId)}
+          replyingTo={replyingTo}
+        />
       </div>
     </div>
   );

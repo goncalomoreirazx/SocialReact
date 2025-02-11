@@ -61,19 +61,33 @@ export const getMessages = async (req, res) => {
 export const sendMessage = async (req, res) => {
   try {
     const { userId } = req.user;
-    const { receiverId, content } = req.body;
+    const { receiverId, content, replyToId } = req.body;
 
     const [result] = await db.promise().query(
-      'INSERT INTO messages (sender_id, receiver_id, content) VALUES (?, ?, ?)',
-      [userId, receiverId, content]
+      'INSERT INTO messages (sender_id, receiver_id, content, reply_to_id) VALUES (?, ?, ?, ?)',
+      [userId, receiverId, content, replyToId || null]
     );
 
     const [message] = await db.promise().query(
-      'SELECT m.*, u.username as sender_name, u.profile_picture as sender_profile_picture FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.id = ?',
+      `SELECT m.*, u.username as sender_name, u.profile_picture as sender_profile_picture,
+        r.content as reply_content, r.sender_id as reply_sender_id
+       FROM messages m 
+       JOIN users u ON m.sender_id = u.id
+       LEFT JOIN messages r ON m.reply_to_id = r.id
+       WHERE m.id = ?`,
       [result.insertId]
     );
 
-    res.status(201).json(message[0]);
+    // Format the reply data if it exists
+    const formattedMessage = {
+      ...message[0],
+      replyTo: message[0].reply_content ? {
+        content: message[0].reply_content,
+        sender_id: message[0].reply_sender_id
+      } : null
+    };
+
+    res.status(201).json(formattedMessage);
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ message: 'Error sending message' });

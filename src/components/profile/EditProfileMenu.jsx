@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../../contexts/AuthContext'; // Import useAuth
 
 const EditProfileMenu = ({ isOpen, onClose, userData, onUpdate }) => {
     const [bio, setBio] = useState(userData?.bio || '');
     const [newProfilePhoto, setNewProfilePhoto] = useState(null);
+    const { token } = useAuth(); // Get the auth token
    
     const handleSubmit = async (e) => {
       e.preventDefault();
       const formData = new FormData();
       formData.append('bio', bio);
       if (newProfilePhoto) {
-        formData.append('profilePicture', newProfilePhoto);
+        formData.append('photo', newProfilePhoto); // Changed to 'photo' to match backend
       }
    
       try {
@@ -19,13 +21,16 @@ const EditProfileMenu = ({ isOpen, onClose, userData, onUpdate }) => {
           `http://localhost:5000/api/users/${userData.id}/update`,
           formData,
           {
-            headers: { 'Content-Type': 'multipart/form-data' }
+            headers: { 
+              'Content-Type': 'multipart/form-data',
+              'Authorization': `Bearer ${token}` // Add authorization header
+            }
           }
         );
         onUpdate(response.data);
         onClose();
       } catch (error) {
-        console.error('Error updating profile:', error);
+        console.error('Error updating profile:', error.response?.data || error);
       }
     };
 
@@ -69,7 +74,7 @@ const EditProfileMenu = ({ isOpen, onClose, userData, onUpdate }) => {
             </form>
           </div>
         </div>
-      );
-     };
+    );
+};
 
 export default EditProfileMenu;

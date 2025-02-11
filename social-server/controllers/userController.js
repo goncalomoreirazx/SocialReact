@@ -66,6 +66,7 @@ export const getUserPhotos = async (req, res) => {
   }
 };
 
+// userController.js
 export const updateUser = async (req, res) => {
   try {
     const { bio } = req.body;
@@ -83,13 +84,18 @@ export const updateUser = async (req, res) => {
     await db.promise().query(updateQuery, queryParams);
 
     const [updatedUser] = await db.promise().query(
-      'SELECT * FROM users WHERE id = ?',
+      'SELECT id, username, email, profile_picture, bio FROM users WHERE id = ?',
       [req.params.userId]
     );
 
+    if (updatedUser.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     res.json(updatedUser[0]);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error updating user:', error);
+    res.status(500).json({ message: 'Error updating user', error: error.message });
   }
 };
 

@@ -6,7 +6,7 @@ export const useChat = () => {
   const socket = useSocket();
   const { user } = useAuth();
 
-  const sendMessage = useCallback((receiverId, content) => {
+  const sendMessage = useCallback((receiverId, content, replyToId = null) => {
     return new Promise((resolve, reject) => {
       if (!socket) {
         reject(new Error('Socket not connected'));
@@ -16,7 +16,8 @@ export const useChat = () => {
       socket.emit('send_message', {
         senderId: user.id,
         receiverId,
-        content
+        content,
+        replyToId
       });
 
       const messageHandler = (message) => {

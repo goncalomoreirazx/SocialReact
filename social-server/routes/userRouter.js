@@ -33,6 +33,7 @@ router.post('/add-friend', verifyToken, addFriend);
 router.get('/:userId', getUserProfile);
 router.get('/:userId/photos', getUserPhotos);
 router.get('/:userId/posts', getUserPosts);
-router.put('/:userId/update', upload.single('photo'), updateUser);
+// userRouter.js
+router.put('/:userId/update', verifyToken, upload.single('photo'), updateUser);
 
 export default router;

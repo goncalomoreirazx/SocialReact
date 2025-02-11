@@ -10,7 +10,8 @@ const db = mysql.createPool({
   database: process.env.DB_NAME || 'socialreact',
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  charset: 'utf8mb4' // Add this line
 });
 
 // Test the connection using the pool
