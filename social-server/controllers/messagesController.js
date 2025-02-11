@@ -5,7 +5,9 @@ export const getConversations = async (req, res) => {
     const userId = req.user.userId;
     const [conversations] = await db.promise().query(`
       SELECT DISTINCT 
-        u.id, u.username, u.profile_picture,
+        u.id, 
+        u.username, 
+        u.profile_picture,
         (SELECT content FROM messages 
          WHERE (sender_id = ? AND receiver_id = u.id) 
          OR (sender_id = u.id AND receiver_id = ?)
@@ -13,13 +15,17 @@ export const getConversations = async (req, res) => {
         (SELECT sent_at FROM messages 
          WHERE (sender_id = ? AND receiver_id = u.id) 
          OR (sender_id = u.id AND receiver_id = ?)
-         ORDER BY sent_at DESC LIMIT 1) as last_message_time
+         ORDER BY sent_at DESC LIMIT 1) as last_message_time,
+        (SELECT COUNT(*) FROM messages 
+         WHERE sender_id = u.id 
+         AND receiver_id = ? 
+         AND is_read = FALSE) as unread_count
       FROM messages m
       JOIN users u ON (m.sender_id = u.id OR m.receiver_id = u.id)
       WHERE ? IN (sender_id, receiver_id) AND u.id != ?
       GROUP BY u.id
       ORDER BY last_message_time DESC
-    `, [userId, userId, userId, userId, userId, userId]);
+    `, [userId, userId, userId, userId, userId, userId, userId]);
 
     res.json(conversations);
   } catch (error) {
@@ -71,5 +77,22 @@ export const sendMessage = async (req, res) => {
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ message: 'Error sending message' });
+  }
+};
+
+export const markMessagesAsRead = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const { senderId } = req.params;
+
+    await db.promise().query(
+      'UPDATE messages SET is_read = TRUE WHERE sender_id = ? AND receiver_id = ? AND is_read = FALSE',
+      [senderId, userId]
+    );
+
+    res.json({ message: 'Messages marked as read' });
+  } catch (error) {
+    console.error('Error marking messages as read:', error);
+    res.status(500).json({ message: 'Error marking messages as read' });
   }
 };

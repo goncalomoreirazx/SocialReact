@@ -1,4 +1,3 @@
-// ChatRoom.jsx
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -58,6 +57,26 @@ function ChatRoom() {
     }
   }, [friendId, token]);
 
+  // Mark messages as read when opening chat
+  useEffect(() => {
+    const markAsRead = async () => {
+      try {
+        await fetch(`http://localhost:5000/api/messages/${friendId}/read`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+      } catch (error) {
+        console.error('Error marking messages as read:', error);
+      }
+    };
+
+    if (friendId && token) {
+      markAsRead();
+    }
+  }, [friendId, token]);
+
   // Handle real-time messages
   useEffect(() => {
     if (socket) {
@@ -93,7 +112,6 @@ function ChatRoom() {
       setMessages(prev => [...prev, newMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
-      // Optionally show an error toast/notification
     }
   };
 
