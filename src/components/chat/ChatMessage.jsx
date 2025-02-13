@@ -15,7 +15,7 @@ function ChatMessage({ message, onReply }) {
           <ReplyIcon className="h-4 w-4 text-gray-500 hover:text-blue-500" />
         </button>
         
-        <div className={`max-w-[70%] rounded-lg px-4 py-2 ${
+        <div className={`max-w-[80%] rounded-lg px-6 py-4 ${
           isSentByUser 
             ? 'bg-blue-500 text-white' 
             : 'bg-gray-100 text-gray-900'
