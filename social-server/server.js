@@ -12,12 +12,28 @@ import friendRouter from './routes/friendRouter.js';
 import messagesRouter from './routes/messagesRouter.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 5000;
+
+// Configure __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Create uploads directories if they don't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+const messagesDir = path.join(__dirname, 'uploads/messages');
+const postsDir = path.join(__dirname, 'uploads/posts');
+
+[uploadsDir, messagesDir, postsDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 // CORS configuration
 const corsOptions = {
@@ -33,14 +49,14 @@ const io = new Server(httpServer, {
   allowEIO3: true
 });
 
-// Configure __dirname for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // Middleware
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Static file serving - make sure these come before your routes
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads/messages', express.static(path.join(__dirname, 'uploads/messages')));
+app.use('/uploads/posts', express.static(path.join(__dirname, 'uploads/posts')));
 
 // Routes
 app.use('/api/auth', authRouter);
@@ -118,10 +134,10 @@ io.on('connection', (socket) => {
         throw new Error('Unauthorized message sender');
       }
 
-      // Insert the message with reply_to_id
+      // Insert the message
       const [result] = await db.promise().query(
         'INSERT INTO messages (sender_id, receiver_id, content, reply_to_id) VALUES (?, ?, ?, ?)',
-        [senderId, receiverId, content, replyToId]
+        [senderId, receiverId, content || '', replyToId || null]
       );
 
       // Fetch the complete message with sender info and reply info
@@ -144,7 +160,6 @@ io.on('connection', (socket) => {
       const formattedMessage = {
         ...newMessage[0],
         replyTo: newMessage[0].reply_content ? {
-          id: newMessage[0].reply_to_id,
           content: newMessage[0].reply_content,
           sender_id: newMessage[0].reply_sender_id,
           sender_name: newMessage[0].reply_sender_name
@@ -209,6 +224,12 @@ io.on('connection', (socket) => {
       console.error('Error handling disconnect:', error);
     }
   });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something broke!', error: err.message });
 });
 
 httpServer.listen(PORT, () => {

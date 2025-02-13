@@ -119,8 +119,15 @@ function ChatRoom() {
         content, 
         replyingTo?.id || null
       );
-      setMessages(prev => [...prev, newMessage]);
+      setMessages(prev => [...prev, {
+        ...newMessage,
+        isSentByUser: newMessage.sender_id === user.id
+      }]);
+      
       setReplyingTo(null);
+      
+      // Scroll to bottom after adding new message
+      scrollToBottom();
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -187,7 +194,7 @@ function ChatRoom() {
         )}
 
         <MessageInput 
-          onSubmit={handleSendMessage} 
+          onSubmit={handleSendMessage}
           friendId={parseInt(friendId)}
           replyingTo={replyingTo}
         />
