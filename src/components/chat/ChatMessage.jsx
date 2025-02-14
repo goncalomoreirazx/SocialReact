@@ -4,6 +4,12 @@ import { formatDistanceToNow } from 'date-fns';
 function ChatMessage({ message, onReply }) {
   const { content, sent_at, isSentByUser, replyTo, image_url } = message;
   
+  // Function to get the full image URL
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    return url.startsWith('http') ? url : `http://localhost:5000${url}`;
+  };
+  
   return (
     <div className={`flex ${isSentByUser ? 'justify-end' : 'justify-start'}`}>
       <div className="relative group">
@@ -37,10 +43,10 @@ function ChatMessage({ message, onReply }) {
           {image_url && (
             <div className="mb-2">
               <img
-                src={`http://localhost:5000${image_url}`}
+                src={getImageUrl(image_url)}
                 alt="Message attachment"
                 className="max-w-full rounded-lg max-h-64 object-contain"
-                onClick={() => window.open(`http://localhost:5000${image_url}`, '_blank')}
+                onClick={() => window.open(getImageUrl(image_url), '_blank')}
                 style={{ cursor: 'pointer' }}
               />
             </div>

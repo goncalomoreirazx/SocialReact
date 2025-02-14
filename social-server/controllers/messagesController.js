@@ -46,21 +46,41 @@ export const sendMessage = async (req, res) => {
       [userId, receiverId, content || '', imageUrl]
     );
 
-    // Fetch the complete message
+    // Fetch the complete message with all necessary information
     const [message] = await db.promise().query(
-      `SELECT m.*, 
-        u.username as sender_name, 
-        u.profile_picture as sender_profile_picture
+      `SELECT 
+        m.*,
+        u.username as sender_name,
+        u.profile_picture as sender_profile_picture,
+        CASE 
+          WHEN m.reply_to_id IS NOT NULL THEN (
+            SELECT JSON_OBJECT(
+              'id', r.id,
+              'content', r.content,
+              'sender_id', r.sender_id,
+              'sender_name', ru.username
+            )
+            FROM messages r
+            JOIN users ru ON r.sender_id = ru.id
+            WHERE r.id = m.reply_to_id
+          )
+          ELSE NULL
+        END as reply_to
       FROM messages m
       JOIN users u ON m.sender_id = u.id
       WHERE m.id = ?`,
       [result.insertId]
     );
 
-    res.status(201).json(message[0]);
+    const formattedMessage = {
+      ...message[0],
+      reply_to: message[0].reply_to ? JSON.parse(message[0].reply_to) : null
+    };
+
+    res.status(201).json(formattedMessage);
   } catch (error) {
     console.error('Error sending message:', error);
-    res.status(500).json({ message: 'Error sending message' });
+    res.status(500).json({ message: 'Error sending message', error: error.message });
   }
 };
 

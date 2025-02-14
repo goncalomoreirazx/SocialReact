@@ -69,14 +69,12 @@ function MessageInput({ onSubmit, friendId }) {
       
       if (message.trim()) {
         formData.append('content', message.trim());
-      } else {
-        formData.append('content', ''); // Send empty string if no text
       }
       
       if (selectedImage) {
         formData.append('image', selectedImage);
       }
-
+  
       const response = await fetch('http://localhost:5000/api/messages', {
         method: 'POST',
         headers: {
@@ -84,15 +82,15 @@ function MessageInput({ onSubmit, friendId }) {
         },
         body: formData
       });
-
+  
       if (!response.ok) {
         throw new Error('Failed to send message');
       }
-
+  
       const newMessage = await response.json();
       
-      // Call onSubmit with the new message
-      onSubmit && onSubmit(newMessage);
+      // Pass the server response to the parent component
+      onSubmit(newMessage);
       
       // Clear the form
       setMessage('');

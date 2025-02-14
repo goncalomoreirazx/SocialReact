@@ -110,26 +110,21 @@ function ChatRoom() {
     setReplyingTo(message);
   };
 
-  const handleSendMessage = async (content) => {
-    if (!content.trim()) return;
-  
+  const handleSendMessage = async (messageData) => {
     try {
-      const newMessage = await sendMessage(
-        parseInt(friendId), 
-        content, 
-        replyingTo?.id || null
-      );
+      // Add the message to the messages array immediately
       setMessages(prev => [...prev, {
-        ...newMessage,
-        isSentByUser: newMessage.sender_id === user.id
+        ...messageData,
+        isSentByUser: messageData.sender_id === user.id,
+        // Keep the image_url as is - the ChatMessage component will handle the full URL
+        image_url: messageData.image_url,
+        sent_at: messageData.sent_at || new Date().toISOString()
       }]);
       
       setReplyingTo(null);
-      
-      // Scroll to bottom after adding new message
       scrollToBottom();
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error handling message:', error);
     }
   };
 
