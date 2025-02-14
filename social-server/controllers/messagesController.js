@@ -46,37 +46,33 @@ export const sendMessage = async (req, res) => {
       [userId, receiverId, content || '', imageUrl]
     );
 
-    // Fetch the complete message with all necessary information
+    // Fetch the complete message
     const [message] = await db.promise().query(
-      `SELECT 
-        m.*,
-        u.username as sender_name,
+      `SELECT m.*, 
+        u.username as sender_name, 
         u.profile_picture as sender_profile_picture,
-        CASE 
-          WHEN m.reply_to_id IS NOT NULL THEN (
-            SELECT JSON_OBJECT(
-              'id', r.id,
-              'content', r.content,
-              'sender_id', r.sender_id,
-              'sender_name', ru.username
-            )
-            FROM messages r
-            JOIN users ru ON r.sender_id = ru.id
-            WHERE r.id = m.reply_to_id
-          )
-          ELSE NULL
-        END as reply_to
+        r.content as reply_content,
+        r.sender_id as reply_sender_id,
+        ru.username as reply_sender_name
       FROM messages m
       JOIN users u ON m.sender_id = u.id
+      LEFT JOIN messages r ON m.reply_to_id = r.id
+      LEFT JOIN users ru ON r.sender_id = ru.id
       WHERE m.id = ?`,
       [result.insertId]
     );
 
     const formattedMessage = {
       ...message[0],
-      reply_to: message[0].reply_to ? JSON.parse(message[0].reply_to) : null
+      replyTo: message[0].reply_content ? {
+        content: message[0].reply_content,
+        sender_id: message[0].reply_sender_id,
+        sender_name: message[0].reply_sender_name
+      } : null
     };
 
+    // For messages with images, we'll handle it through HTTP response
+    // Socket events will be used only for text messages
     res.status(201).json(formattedMessage);
   } catch (error) {
     console.error('Error sending message:', error);
@@ -93,15 +89,30 @@ export const getMessages = async (req, res) => {
       SELECT 
         m.*,
         u.username as sender_name,
-        u.profile_picture as sender_profile_picture
+        u.profile_picture as sender_profile_picture,
+        r.content as reply_content,
+        r.sender_id as reply_sender_id,
+        ru.username as reply_sender_name
       FROM messages m
       JOIN users u ON m.sender_id = u.id
-      WHERE (sender_id = ? AND receiver_id = ?)
-      OR (sender_id = ? AND receiver_id = ?)
-      ORDER BY sent_at ASC
+      LEFT JOIN messages r ON m.reply_to_id = r.id
+      LEFT JOIN users ru ON r.sender_id = ru.id
+      WHERE (m.sender_id = ? AND m.receiver_id = ?)
+      OR (m.sender_id = ? AND m.receiver_id = ?)
+      ORDER BY m.sent_at ASC
     `, [userId, friendId, friendId, userId]);
 
-    res.json(messages);
+    // Format messages to include reply information
+    const formattedMessages = messages.map(message => ({
+      ...message,
+      replyTo: message.reply_content ? {
+        content: message.reply_content,
+        sender_id: message.reply_sender_id,
+        sender_name: message.reply_sender_name
+      } : null
+    }));
+
+    res.json(formattedMessages);
   } catch (error) {
     console.error('Error fetching messages:', error);
     res.status(500).json({ message: 'Error fetching messages' });

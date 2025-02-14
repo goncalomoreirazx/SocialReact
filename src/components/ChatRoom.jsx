@@ -83,23 +83,29 @@ function ChatRoom() {
   useEffect(() => {
     if (socket) {
       socket.on('receive_message', (message) => {
-        if (message.sender_id === parseInt(friendId) || message.receiver_id === parseInt(friendId)) {
-          setMessages(prev => [...prev, message]);
-        }
-      });
-
-      socket.on('typing_status', ({ userId, isTyping: typing }) => {
-        if (userId === parseInt(friendId)) {
-          setIsTyping(typing);
+        // Check if the message belongs to this chat
+        if (message.sender_id === parseInt(friendId) || 
+            message.receiver_id === parseInt(friendId)) {
+          setMessages(prev => {
+            // Check if message already exists
+            const messageExists = prev.some(m => m.id === message.id);
+            if (messageExists) return prev;
+            
+            return [...prev, {
+              ...message,
+              isSentByUser: message.sender_id === user.id
+            }];
+          });
+          scrollToBottom();
         }
       });
 
       return () => {
         socket.off('receive_message');
-        socket.off('typing_status');
       };
     }
-  }, [socket, friendId]);
+  }, [socket, friendId, user.id]);
+
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -112,14 +118,28 @@ function ChatRoom() {
 
   const handleSendMessage = async (messageData) => {
     try {
-      // Add the message to the messages array immediately
-      setMessages(prev => [...prev, {
-        ...messageData,
-        isSentByUser: messageData.sender_id === user.id,
-        // Keep the image_url as is - the ChatMessage component will handle the full URL
-        image_url: messageData.image_url,
-        sent_at: messageData.sent_at || new Date().toISOString()
-      }]);
+      if (messageData.id) {
+        // This is from an HTTP upload with image
+        setMessages(prev => [...prev, {
+          ...messageData,
+          isSentByUser: messageData.sender_id === user.id
+        }]);
+        
+        // Also emit through socket so receiver gets it immediately
+        socket.emit('send_message', {
+          ...messageData,
+          senderId: user.id,
+          receiverId: parseInt(friendId)
+        });
+      } else {
+        // It's a text message to be sent via socket
+        socket.emit('send_message', {
+          senderId: user.id,
+          receiverId: parseInt(friendId),
+          content: messageData.content,
+          replyToId: messageData.replyToId
+        });
+      }
       
       setReplyingTo(null);
       scrollToBottom();

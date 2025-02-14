@@ -5,7 +5,7 @@ import { useChat } from '../../hooks/useChat';
 import { useAuth } from '../../contexts/AuthContext';
 import EmojiPicker from 'emoji-picker-react';
 
-function MessageInput({ onSubmit, friendId }) {
+function MessageInput({ onSubmit, friendId, replyingTo }) {
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -64,43 +64,58 @@ function MessageInput({ onSubmit, friendId }) {
     if (!message.trim() && !selectedImage) return;
     
     try {
-      const formData = new FormData();
-      formData.append('receiverId', friendId);
-      
-      if (message.trim()) {
-        formData.append('content', message.trim());
-      }
-      
       if (selectedImage) {
+        // Handle image upload with HTTP
+        const formData = new FormData();
+        if (message.trim()) {
+          formData.append('content', message.trim());
+        }
+        formData.append('receiverId', friendId);
         formData.append('image', selectedImage);
+        
+        if (replyingTo) {
+          formData.append('replyToId', replyingTo.id);
+        }
+  
+        const response = await fetch('http://localhost:5000/api/messages', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to send message');
+        }
+  
+        const newMessage = await response.json();
+        onSubmit(newMessage); // This will trigger handleSendMessage with the complete message
+      } else {
+        // Text-only message
+        onSubmit({
+          content: message.trim(),
+          receiverId: friendId,
+          replyToId: replyingTo?.id
+        });
       }
-  
-      const response = await fetch('http://localhost:5000/api/messages', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-  
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
-  
-      const newMessage = await response.json();
       
-      // Pass the server response to the parent component
-      onSubmit(newMessage);
-      
-      // Clear the form
+      // Clear form
       setMessage('');
-      removeImage();
-      stopTyping(friendId);
+      setSelectedImage(null);
+      setImagePreview(null);
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
     } catch (error) {
       console.error('Error sending message:', error);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); // Prevent default to avoid new line
+      handleSubmit(e);
     }
   };
 
@@ -140,7 +155,7 @@ function MessageInput({ onSubmit, friendId }) {
         />
 
         <div className="flex-1 relative flex items-center bg-white border rounded-full">
-          <textarea
+        <textarea
             ref={textareaRef}
             value={message}
             onChange={(e) => {
@@ -148,11 +163,12 @@ function MessageInput({ onSubmit, friendId }) {
               handleTyping();
               adjustTextareaHeight();
             }}
+            onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             className="flex-1 p-2 pl-4 pr-4 rounded-full focus:outline-none resize-none overflow-y-auto min-h-[40px] max-h-32"
             rows="1"
             style={{ lineHeight: '20px' }}
-          />
+        />
           
           <div className="flex items-center pr-2">
             <button

@@ -128,59 +128,65 @@ io.on('connection', (socket) => {
 
   socket.on('send_message', async (data) => {
     try {
-      const { senderId, receiverId, content, replyToId } = data;
+      const { id, senderId, receiverId, content, replyToId } = data;
       
       if (senderId !== socket.user.userId) {
         throw new Error('Unauthorized message sender');
       }
-
-      // Insert the message
-      const [result] = await db.promise().query(
-        'INSERT INTO messages (sender_id, receiver_id, content, reply_to_id) VALUES (?, ?, ?, ?)',
-        [senderId, receiverId, content || '', replyToId || null]
-      );
-
-      // Fetch the complete message with sender info and reply info
-      const [newMessage] = await db.promise().query(
-        `SELECT m.*, 
-          u.username as sender_name, 
-          u.profile_picture as sender_profile_picture,
-          r.content as reply_content,
-          r.sender_id as reply_sender_id,
-          ru.username as reply_sender_name
-        FROM messages m
-        JOIN users u ON m.sender_id = u.id
-        LEFT JOIN messages r ON m.reply_to_id = r.id
-        LEFT JOIN users ru ON r.sender_id = ru.id
-        WHERE m.id = ?`,
-        [result.insertId]
-      );
-
-      // Format the message with reply data if it exists
-      const formattedMessage = {
-        ...newMessage[0],
-        replyTo: newMessage[0].reply_content ? {
-          content: newMessage[0].reply_content,
-          sender_id: newMessage[0].reply_sender_id,
-          sender_name: newMessage[0].reply_sender_name
-        } : null
-      };
-
+  
+      let messageToSend;
+  
+      if (id) {
+        // This is an already created message (from image upload)
+        messageToSend = data;
+      } else {
+        // Create new text message
+        const [result] = await db.promise().query(
+          'INSERT INTO messages (sender_id, receiver_id, content, reply_to_id) VALUES (?, ?, ?, ?)',
+          [senderId, receiverId, content || '', replyToId || null]
+        );
+  
+        // Fetch complete message
+        const [newMessage] = await db.promise().query(
+          `SELECT m.*, 
+            u.username as sender_name, 
+            u.profile_picture as sender_profile_picture,
+            r.content as reply_content,
+            r.sender_id as reply_sender_id,
+            ru.username as reply_sender_name
+          FROM messages m
+          JOIN users u ON m.sender_id = u.id
+          LEFT JOIN messages r ON m.reply_to_id = r.id
+          LEFT JOIN users ru ON r.sender_id = ru.id
+          WHERE m.id = ?`,
+          [result.insertId]
+        );
+  
+        messageToSend = {
+          ...newMessage[0],
+          replyTo: newMessage[0].reply_content ? {
+            content: newMessage[0].reply_content,
+            sender_id: newMessage[0].reply_sender_id,
+            sender_name: newMessage[0].reply_sender_name
+          } : null
+        };
+      }
+  
       // Send to receiver if online
       const receiverSocketId = connectedUsers.get(receiverId);
       if (receiverSocketId) {
-        io.to(receiverSocketId).emit('receive_message', formattedMessage);
+        io.to(receiverSocketId).emit('receive_message', messageToSend);
       }
-
-      // Send confirmation back to sender
-      socket.emit('message_sent', formattedMessage);
+  
+      // Send back to sender
+      socket.emit('receive_message', messageToSend);
       
     } catch (error) {
       console.error('Error handling message:', error);
       socket.emit('message_error', { error: 'Failed to send message' });
     }
   });
-
+  
   socket.on('typing_start', ({ receiverId }) => {
     const receiverSocketId = connectedUsers.get(receiverId);
     if (receiverSocketId) {

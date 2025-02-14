@@ -1,17 +1,17 @@
+// ChatMessage.jsx - Update the component to show reply information
 import { ReplyIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 function ChatMessage({ message, onReply }) {
   const { content, sent_at, isSentByUser, replyTo, image_url } = message;
   
-  // Function to get the full image URL
   const getImageUrl = (url) => {
     if (!url) return null;
     return url.startsWith('http') ? url : `http://localhost:5000${url}`;
   };
   
   return (
-    <div className={`flex ${isSentByUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${isSentByUser ? 'justify-end' : 'justify-start'} mb-4`}>
       <div className="relative group">
         <button 
           onClick={() => onReply(message)}
@@ -26,13 +26,13 @@ function ChatMessage({ message, onReply }) {
             : 'bg-gray-100 text-gray-900'
         }`}>
           {replyTo && (
-            <div className={`text-sm mb-1 pb-1 border-b ${
+            <div className={`text-sm mb-2 pb-2 border-b ${
               isSentByUser ? 'border-blue-400' : 'border-gray-300'
             }`}>
               <div className={`text-xs ${
                 isSentByUser ? 'text-blue-100' : 'text-gray-500'
               }`}>
-                Replying to:
+                Replying to {replyTo.sender_name}:
               </div>
               <div className="truncate">{replyTo.content}</div>
             </div>
