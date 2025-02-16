@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useChat } from '../hooks/useChat';
@@ -17,45 +17,61 @@ function ChatRoom() {
   const [friend, setFriend] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (behavior = 'auto') => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior });
+    }
   };
+
+  // Use useLayoutEffect to scroll before browser paint
+  useLayoutEffect(() => {
+    if (!isLoading && messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages, isLoading]);
 
   // Fetch previous messages
   useEffect(() => {
-    const fetchMessages = async () => {
+    const fetchData = async () => {
+      setIsLoading(true);
       try {
-        const response = await fetch(`http://localhost:5000/api/messages/${friendId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
+        // Fetch messages
+        const messagesResponse = await fetch(
+          `http://localhost:5000/api/messages/${friendId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
           }
-        });
-        const data = await response.json();
-        setMessages(data);
-      } catch (error) {
-        console.error('Error fetching messages:', error);
-      }
-    };
+        );
+        const messagesData = await messagesResponse.json();
+        
+        // Fetch friend details
+        const friendResponse = await fetch(
+          `http://localhost:5000/api/users/${friendId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        const friendData = await friendResponse.json();
 
-    const fetchFriend = async () => {
-      try {
-        const response = await fetch(`http://localhost:5000/api/users/${friendId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        const data = await response.json();
-        setFriend(data);
+        setMessages(messagesData);
+        setFriend(friendData);
       } catch (error) {
-        console.error('Error fetching friend details:', error);
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     if (token && friendId) {
-      fetchMessages();
-      fetchFriend();
+      fetchData();
     }
   }, [friendId, token]);
 
@@ -74,20 +90,18 @@ function ChatRoom() {
       }
     };
 
-    if (friendId && token) {
+    if (friendId && token && !isLoading) {
       markAsRead();
     }
-  }, [friendId, token]);
+  }, [friendId, token, isLoading]);
 
   // Handle real-time messages
   useEffect(() => {
     if (socket) {
       socket.on('receive_message', (message) => {
-        // Check if the message belongs to this chat
         if (message.sender_id === parseInt(friendId) || 
             message.receiver_id === parseInt(friendId)) {
           setMessages(prev => {
-            // Check if message already exists
             const messageExists = prev.some(m => m.id === message.id);
             if (messageExists) return prev;
             
@@ -96,7 +110,6 @@ function ChatRoom() {
               isSentByUser: message.sender_id === user.id
             }];
           });
-          scrollToBottom();
         }
       });
 
@@ -106,12 +119,6 @@ function ChatRoom() {
     }
   }, [socket, friendId, user.id]);
 
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const handleReply = (message) => {
     setReplyingTo(message);
   };
@@ -119,20 +126,17 @@ function ChatRoom() {
   const handleSendMessage = async (messageData) => {
     try {
       if (messageData.id) {
-        // This is from an HTTP upload with image
         setMessages(prev => [...prev, {
           ...messageData,
           isSentByUser: messageData.sender_id === user.id
         }]);
         
-        // Also emit through socket so receiver gets it immediately
         socket.emit('send_message', {
           ...messageData,
           senderId: user.id,
           receiverId: parseInt(friendId)
         });
       } else {
-        // It's a text message to be sent via socket
         socket.emit('send_message', {
           senderId: user.id,
           receiverId: parseInt(friendId),
@@ -142,14 +146,12 @@ function ChatRoom() {
       }
       
       setReplyingTo(null);
-      scrollToBottom();
     } catch (error) {
       console.error('Error handling message:', error);
     }
   };
 
-  // Loading state
-  if (!friend) {
+  if (isLoading || !friend) {
     return (
       <div className="max-w-2xl mx-auto h-[calc(100vh-12rem)] flex items-center justify-center">
         <div className="text-gray-500">Loading chat...</div>
@@ -165,7 +167,10 @@ function ChatRoom() {
           isTyping={isTyping} 
         />
         
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div 
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"
+        >
           {messages.map((message) => (
             <ChatMessage 
               key={message.id} 
