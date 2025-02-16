@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
-const RegisterForm = () => {
+const RegisterForm = ({ onSuccess }) => { // Add onSuccess prop here
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -14,7 +14,6 @@ const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const [errors, setErrors] = useState({});
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -90,7 +89,7 @@ const RegisterForm = () => {
     if (validateForm()) {
       const submitData = new FormData();
       Object.keys(formData).forEach(key => {
-        if (key !== 'confirmPassword') { // Don't send confirmPassword to backend
+        if (key !== 'confirmPassword') {
           submitData.append(key, formData[key]);
         }
       });
@@ -98,17 +97,27 @@ const RegisterForm = () => {
       try {
         const response = await fetch('http://localhost:5000/api/auth/register', {
           method: 'POST',
-          body: submitData // Keep FormData for file upload
+          body: submitData
         });
   
+        const data = await response.json();
+  
         if (response.ok) {
-          // Handle successful registration
-          const data = await response.json();
           console.log('Registration successful', data);
-          // You might want to redirect or show a success message
+          // Clear the form
+          setFormData({
+            email: '',
+            username: '',
+            password: '',
+            confirmPassword: '',
+            birthDate: '',
+            profilePicture: null
+          });
+          setPreviewImage(null);
+          // Call the success callback
+          onSuccess();
         } else {
-          const errorData = await response.json();
-          setErrors(errorData.errors || { general: errorData.message || 'Registration failed' });
+          setErrors(data.errors || { general: data.message || 'Registration failed' });
         }
       } catch (error) {
         console.error('Registration error:', error);
@@ -116,6 +125,7 @@ const RegisterForm = () => {
       }
     }
   };
+
 
   return (
     <div className="w-full bg-gray-100 py-6 px-4">
