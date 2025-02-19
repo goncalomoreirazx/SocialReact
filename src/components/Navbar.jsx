@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { HomeIcon, UserCircleIcon, PlusCircleIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, UserCircleIcon, PlusCircleIcon, ChatBubbleLeftIcon, UsersIcon, UserPlusIcon } from '@heroicons/react/24/outline';
 import LoginModal from './auth/LoginModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
 
 function Navbar() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { friendRequests } = useNotifications();
 
   return (
     <>
@@ -25,9 +27,14 @@ function Navbar() {
               
               {user ? (
                 <>
-                  <Link to="/find-friends" className="nav-link text-gray-600">
-                    <ChatBubbleLeftIcon className="h-6 w-6" />
+                  <Link to="/find-friends" className="nav-link text-gray-600 relative">
+                    <UserPlusIcon className="h-6 w-6" />
                     <span className="hidden md:block">FindFriends</span>
+                    {friendRequests > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {friendRequests}
+                      </span>
+                    )}
                   </Link>
                   <Link to="/messages" className="nav-link text-gray-600">
                     <ChatBubbleLeftIcon className="h-6 w-6" />

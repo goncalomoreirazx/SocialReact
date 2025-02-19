@@ -5,7 +5,8 @@ import {
   sendFriendRequest, 
   acceptFriendRequest, 
   getPendingRequests,
-  getFriendsList 
+  getFriendsList,
+  removeFriend // Add this new import
 } from '../controllers/friendController.js';
 
 const router = express.Router();
@@ -14,5 +15,6 @@ router.post('/request', verifyToken, sendFriendRequest);
 router.post('/accept', verifyToken, acceptFriendRequest);
 router.get('/pending', verifyToken, getPendingRequests);
 router.get('/list', verifyToken, getFriendsList);
+router.delete('/remove/:friendId', verifyToken, removeFriend); // Add new route
 
 export default router;

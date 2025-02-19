@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import ConfirmationDialog from '../dialogs/ConfirmationDialog';
+import { Link } from 'react-router-dom';
+import { UserIcon } from '@heroicons/react/24/outline';
+import { useNotifications } from '../contexts/NotificationContext';
 
 const FindFriends = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -9,13 +13,18 @@ const FindFriends = () => {
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(false);
   const { token } = useAuth();
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [selectedFriend, setSelectedFriend] = useState(null);
+  const { clearFriendRequests } = useNotifications();
+
 
   useEffect(() => {
     if (token) {
       fetchRequests();
       fetchFriends();
+      clearFriendRequests(); // Clear the notification count when viewing the page
     }
-  }, [token]);
+  }, [token, clearFriendRequests]);
 
   const fetchFriends = async () => {
     try {
@@ -93,10 +102,35 @@ const FindFriends = () => {
     }
   };
 
+  const handleRemoveFriend = async (friendId) => {
+    try {
+      await axios.delete(
+        `http://localhost:5000/api/friends/remove/${friendId}`,
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+      
+      setFriends(friends.filter(friend => friend.id !== friendId));
+      setUsers(users.map(user => 
+        user.id === friendId 
+          ? { ...user, isFriend: false, requestSent: false }
+          : user
+      ));
+    } catch (error) {
+      console.error('Error removing friend:', error);
+    }
+  };
+
+  const openRemoveDialog = (friend) => {
+    setSelectedFriend(friend);
+    setShowConfirmDialog(true);
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-4">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-4">Find Friends</h1>
+        <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
+          Find Friends
+        </h1>
         <div className="flex gap-2">
           <input
             type="text"
@@ -127,18 +161,27 @@ const FindFriends = () => {
               >
                 <div className="flex items-center gap-3">
                   <img
-                    src={request.profile_picture ? `/uploads/${request.profile_picture}` : '/default-avatar.png'}
+                    src={request.profile_picture ? `http://localhost:5000/uploads/${request.profile_picture}` : '/default-avatar.png'}
                     alt={request.username}
                     className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
                   />
                   <span className="font-medium">{request.username}</span>
                 </div>
-                <button
-                  onClick={() => handleAccept(request.id)}
-                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                >
-                  Accept
-                </button>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={`/profile/${request.user_id}`}
+                    className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors flex items-center gap-1"
+                  >
+                    <UserIcon className="h-4 w-4" />
+                    Profile
+                  </Link>
+                  <button
+                    onClick={() => handleAccept(request.id)}
+                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                  >
+                    Accept
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -156,7 +199,7 @@ const FindFriends = () => {
               >
                 <div className="flex items-center gap-3">
                   <img
-                    src={friend.profile_picture ? `/uploads/${friend.profile_picture}` : '/default-avatar.png'}
+                    src={friend.profile_picture ? `http://localhost:5000/uploads/${friend.profile_picture}` : '/default-avatar.png'}
                     alt={friend.username}
                     className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
                   />
@@ -164,17 +207,40 @@ const FindFriends = () => {
                     <h3 className="font-semibold">{friend.username}</h3>
                   </div>
                 </div>
-                <button
-                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                  onClick={() => {/* TODO: Add remove friend functionality */}}
-                >
-                  Remove
-                </button>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={`/profile/${friend.id}`}
+                    className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors flex items-center gap-1"
+                  >
+                    <UserIcon className="h-4 w-4" />
+                    Profile
+                  </Link>
+                  <button
+                    className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                    onClick={() => openRemoveDialog(friend)}
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        onConfirm={() => {
+          if (selectedFriend) {
+            handleRemoveFriend(selectedFriend.id);
+            setShowConfirmDialog(false);
+          }
+        }}
+        title="Remove Friend"
+        message={`Are you sure you want to remove ${selectedFriend?.username} from your friends list?`}
+      />
 
       {/* Search Results Section */}
       {searchTerm && (
@@ -188,7 +254,7 @@ const FindFriends = () => {
               >
                 <div className="flex items-center gap-3">
                   <img
-                    src={user.profile_picture ? `/uploads/${user.profile_picture}` : '/default-avatar.png'}
+                    src={user.profile_picture ? `http://localhost:5000/uploads/${user.profile_picture}` : '/default-avatar.png'}
                     alt={user.username}
                     className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
                   />
@@ -199,23 +265,31 @@ const FindFriends = () => {
                     )}
                   </div>
                 </div>
-                
-                {!user.isFriend && !user.requestSent ? (
-                  <button
-                    onClick={() => handleAddFriend(user.id)}
-                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={`/profile/${user.id}`}
+                    className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors flex items-center gap-1"
                   >
-                    Add Friend
-                  </button>
-                ) : user.requestSent ? (
-                  <span className="px-3 py-1 text-gray-500 font-medium">
-                    Request Sent
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 text-green-500 font-medium">
-                    Friends
-                  </span>
-                )}
+                    <UserIcon className="h-4 w-4" />
+                    Profile
+                  </Link>
+                  {!user.isFriend && !user.requestSent ? (
+                    <button
+                      onClick={() => handleAddFriend(user.id)}
+                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    >
+                      Add Friend
+                    </button>
+                  ) : user.requestSent ? (
+                    <span className="px-3 py-1 text-gray-500 font-medium">
+                      Request Sent
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 text-green-500 font-medium">
+                      Friends
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

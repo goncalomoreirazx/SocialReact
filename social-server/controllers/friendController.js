@@ -111,3 +111,23 @@ export const sendFriendRequest = async (req, res) => {
       res.status(500).json({ message: 'Error getting friends list' });
     }
   };
+
+  export const removeFriend = async (req, res) => {
+    try {
+      const userId = req.user.userId;
+      const { friendId } = req.params;
+  
+      // Delete the friendship in both directions
+      await db.promise().query(
+        `DELETE FROM friends 
+         WHERE (user_id = ? AND friend_id = ?) 
+         OR (user_id = ? AND friend_id = ?)`,
+        [userId, friendId, friendId, userId]
+      );
+  
+      res.json({ message: 'Friend removed successfully' });
+    } catch (error) {
+      console.error('Remove friend error:', error);
+      res.status(500).json({ message: 'Error removing friend' });
+    }
+  };

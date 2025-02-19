@@ -36,7 +36,22 @@ const FriendRequests = () => {
       console.error('Error accepting request:', error);
     }
   };
-
+  const handleRemoveFriend = async (friendId, token) => {
+    try {
+      await axios.delete(
+        `http://localhost:5000/api/friends/remove/${friendId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      // After successful removal, you might want to refresh the friends list
+      // This could be handled by the parent component
+      return true;
+    } catch (error) {
+      console.error('Error removing friend:', error);
+      return false;
+    }
+  };
   return (
     <div className="max-w-md mx-auto mt-4">
       <h2 className="text-xl font-bold mb-4">Friend Requests</h2>

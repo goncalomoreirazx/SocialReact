@@ -11,12 +11,14 @@ import ChatList from './pages/ChatList';
 import ChatRoom from './components/ChatRoom';
 import Register from './pages/Register';
 import FindFriends from './pages/FindFriends';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 function App() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <Router>
         <AuthProvider>
+        <NotificationProvider>
           <SocketProvider>
             <div className="min-h-screen bg-gray-100">
               <Navbar />
@@ -68,6 +70,7 @@ function App() {
               </main>
             </div>
           </SocketProvider>
+          </NotificationProvider>
         </AuthProvider>
       </Router>
     </Suspense>
