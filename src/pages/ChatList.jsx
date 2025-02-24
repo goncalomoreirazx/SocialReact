@@ -5,12 +5,14 @@ import { Link } from 'react-router-dom';
 import ConversationItem from '../components/chat/ConversationItem';
 import FriendsList from '../components/chat/FriendsList';
 import { useSocket } from '../contexts/SocketContext';
+import { useNotifications } from '../contexts/NotificationContext';
 
 function ChatList() {
   const [conversations, setConversations] = useState([]);
   const [friends, setFriends] = useState([]);
   const { token } = useAuth();
   const socket = useSocket();
+  const { clearMessageNotifications } = useNotifications();
 
   useEffect(() => {
     const fetchConversations = async () => {
@@ -54,6 +56,7 @@ function ChatList() {
     if (token) {
       fetchConversations();
       fetchFriends();
+      clearMessageNotifications(); // Clear notification count when viewing messages
     }
 
     // Socket event listeners for real-time updates
@@ -73,7 +76,7 @@ function ChatList() {
         socket.off('user_status');
       };
     }
-  }, [token, socket]);
+  }, [token, socket, clearMessageNotifications]);
 
   return (
     <div className="max-w-5xl mx-auto p-4">

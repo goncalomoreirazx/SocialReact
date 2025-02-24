@@ -128,6 +128,7 @@ io.on('connection', (socket) => {
 
   socket.on('send_message', async (data) => {
     try {
+      console.log('socket.on send_message received:', data);
       const { id, senderId, receiverId, content, replyToId } = data;
       
       if (senderId !== socket.user.userId) {
@@ -139,14 +140,17 @@ io.on('connection', (socket) => {
       if (id) {
         // This is an already created message (from image upload)
         messageToSend = data;
+        console.log('Using existing message data with id:', id);
       } else {
         // Create new text message
+        console.log('Creating new message in database');
         const [result] = await db.promise().query(
           'INSERT INTO messages (sender_id, receiver_id, content, reply_to_id) VALUES (?, ?, ?, ?)',
           [senderId, receiverId, content || '', replyToId || null]
         );
   
         // Fetch complete message
+        console.log('Fetching complete message data for id:', result.insertId);
         const [newMessage] = await db.promise().query(
           `SELECT m.*, 
             u.username as sender_name, 
@@ -175,10 +179,24 @@ io.on('connection', (socket) => {
       // Send to receiver if online
       const receiverSocketId = connectedUsers.get(receiverId);
       if (receiverSocketId) {
+        console.log(`Sending message to receiver ${receiverId} via socket ${receiverSocketId}`);
+        
+        // Send the message content
         io.to(receiverSocketId).emit('receive_message', messageToSend);
+        
+        // IMPORTANT: Also emit a separate event specifically for notifications
+        console.log('Emitting notification event for unread message');
+        io.to(receiverSocketId).emit('new_message', {
+          senderId: messageToSend.sender_id,
+          receiverId: messageToSend.receiver_id,
+          messageId: messageToSend.id
+        });
+      } else {
+        console.log(`Receiver ${receiverId} is not online, can't send socket notification`);
       }
   
-      // Send back to sender
+      // Send back to sender for confirmation
+      console.log('Sending confirmation back to sender');
       socket.emit('receive_message', messageToSend);
       
     } catch (error) {

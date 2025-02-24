@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { HomeIcon, UserCircleIcon, PlusCircleIcon, ChatBubbleLeftIcon, UsersIcon, UserPlusIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, UserCircleIcon, PlusCircleIcon, ChatBubbleLeftIcon, UsersIcon } from '@heroicons/react/24/outline';
 import LoginModal from './auth/LoginModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -8,7 +8,22 @@ import { useNotifications } from '../contexts/NotificationContext';
 function Navbar() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const { user, logout } = useAuth();
-  const { friendRequests } = useNotifications();
+  const { friendRequests, unreadMessages } = useNotifications();
+  
+  // Debug counter to ensure component re-renders
+  const [renderCount, setRenderCount] = useState(0);
+  
+  useEffect(() => {
+    // Increment render count on each render to prove updates
+    setRenderCount(prev => prev + 1);
+    
+    console.log('Navbar rendering with notification counts:', { 
+      friendRequests, 
+      unreadMessages,
+      renderCount: renderCount + 1,
+      user: user?.id
+    });
+  }, [friendRequests, unreadMessages, user]);
 
   return (
     <>
@@ -28,17 +43,25 @@ function Navbar() {
               {user ? (
                 <>
                   <Link to="/find-friends" className="nav-link text-gray-600 relative">
-                    <UserPlusIcon className="h-6 w-6" />
+                    <UsersIcon className="h-6 w-6" />
                     <span className="hidden md:block">FindFriends</span>
-                    {friendRequests > 0 && (
+                    {(friendRequests > 0) && (
                       <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                         {friendRequests}
                       </span>
                     )}
                   </Link>
-                  <Link to="/messages" className="nav-link text-gray-600">
+                  <Link to="/messages" className="nav-link text-gray-600 relative">
                     <ChatBubbleLeftIcon className="h-6 w-6" />
                     <span className="hidden md:block">Messages</span>
+                    {(unreadMessages > 0) && (
+                      <span 
+                        className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"
+                        data-testid="message-badge"
+                      >
+                        {unreadMessages}
+                      </span>
+                    )}
                   </Link>
                   <Link to="/create" className="nav-link text-gray-600">
                     <PlusCircleIcon className="h-6 w-6" />

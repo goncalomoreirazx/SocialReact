@@ -169,3 +169,24 @@ export const markMessagesAsRead = async (req, res) => {
     res.status(500).json({ message: 'Error marking messages as read' });
   }
 };
+
+export const getUnreadCount = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log(`Getting unread message count for user ${userId}`);
+    
+    const [result] = await db.promise().query(
+      'SELECT COUNT(*) as count FROM messages WHERE receiver_id = ? AND is_read = FALSE',
+      [userId]
+    );
+    
+    // Make sure we're returning a number, not undefined
+    const count = result[0]?.count || 0;
+    console.log(`Unread count for user ${userId}:`, count);
+    
+    res.json({ count });
+  } catch (error) {
+    console.error('Error getting unread count:', error);
+    res.status(500).json({ message: 'Error getting unread messages count' });
+  }
+};
