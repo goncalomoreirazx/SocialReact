@@ -1,4 +1,5 @@
 // ChatList.jsx
+// ChatList.jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -6,6 +7,7 @@ import ConversationItem from '../components/chat/ConversationItem';
 import FriendsList from '../components/chat/FriendsList';
 import { useSocket } from '../contexts/SocketContext';
 import { useNotifications } from '../contexts/NotificationContext';
+import { useMessageNotifications } from '../contexts/MessageNotificationContext';
 
 function ChatList() {
   const [conversations, setConversations] = useState([]);
@@ -13,6 +15,7 @@ function ChatList() {
   const { token } = useAuth();
   const socket = useSocket();
   const { clearMessageNotifications } = useNotifications();
+  const { clearUnreadCount } = useMessageNotifications();
 
   useEffect(() => {
     const fetchConversations = async () => {
@@ -56,7 +59,8 @@ function ChatList() {
     if (token) {
       fetchConversations();
       fetchFriends();
-      clearMessageNotifications(); // Clear notification count when viewing messages
+      clearMessageNotifications(); // Clear notification count from old system
+      clearUnreadCount(); // Clear notification count from new system
     }
 
     // Socket event listeners for real-time updates
@@ -76,7 +80,7 @@ function ChatList() {
         socket.off('user_status');
       };
     }
-  }, [token, socket, clearMessageNotifications]);
+  }, [token, socket, clearMessageNotifications, clearUnreadCount]);
 
   return (
     <div className="max-w-5xl mx-auto p-4">

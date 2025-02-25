@@ -172,6 +172,7 @@ export const markMessagesAsRead = async (req, res) => {
 
 export const getUnreadCount = async (req, res) => {
   try {
+    // Important: use req.user.userId consistently (not just userId)
     const userId = req.user.userId;
     console.log(`Getting unread message count for user ${userId}`);
     
@@ -184,6 +185,7 @@ export const getUnreadCount = async (req, res) => {
     const count = result[0]?.count || 0;
     console.log(`Unread count for user ${userId}:`, count);
     
+    // Return a properly structured response
     res.json({ count });
   } catch (error) {
     console.error('Error getting unread count:', error);

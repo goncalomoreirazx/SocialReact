@@ -62,15 +62,16 @@ export const NotificationProvider = ({ children }) => {
     if (!token) return;
     
     try {
-      console.log('Fetching unread messages count...');
+      log('Fetching unread messages count...');
       const response = await axios.get(
         'http://localhost:5000/api/messages/unread',
         { headers: { Authorization: `Bearer ${token}` }}
       );
       
-      console.log('Unread messages count response:', response.data);
+      log('Unread messages count response:', response.data);
       // Ensure we always set a number value, defaulting to 0 if count is missing
       const count = response.data?.count ?? 0;
+      log(`Setting unread messages count to: ${count}`);
       setUnreadMessages(count);
     } catch (error) {
       console.error('Error fetching unread messages:', error);
@@ -90,7 +91,7 @@ export const NotificationProvider = ({ children }) => {
 
   // Socket connection listener - monitor socket connection status
   useEffect(() => {
-    log('Socket connection status changed', !!socket);
+    log('Socket reference changed', { connected: !!socket });
     
     // Expose a global debug function
     if (DEBUG && window) {
@@ -139,7 +140,10 @@ export const NotificationProvider = ({ children }) => {
       return;
     }
     
-    log('Setting up socket event listeners', { userId: user.id });
+    log('Setting up socket event listeners', { userId: user.id, socketId: socket.id });
+    
+    // Dummy event to test socket connection
+    socket.emit('test_notification_connection', { userId: user.id });
     
     // Direct message handler
     const handleNewMessage = (message) => {
@@ -154,47 +158,32 @@ export const NotificationProvider = ({ children }) => {
       }
     };
     
-    // Friend request handler
-    const handleFriendRequest = () => {
-      log('Socket: new_friend_request event received');
-      fetchFriendRequests();
-    };
-    
-    // Socket connection handlers
-    const handleConnect = () => {
-      log('Socket connected');
-    };
-    
-    const handleDisconnect = () => {
-      log('Socket disconnected');
-    };
-    
-    const handleConnectError = (err) => {
-      log('Socket connection error', err);
-    };
-    
-    // Register all event listeners
+    // Use event listener for any message with our receiverId
     socket.on('receive_message', handleNewMessage);
-    socket.on('new_friend_request', handleFriendRequest);
-    socket.on('connect', handleConnect);
-    socket.on('disconnect', handleDisconnect);
-    socket.on('connect_error', handleConnectError);
     
-    // Also try listening for a direct 'new_message' event that might be emitted
+    // Also listen for the specific notification event
     socket.on('new_message', (data) => {
       log('Socket: new_message event received', data);
-      fetchUnreadMessages();
+      
+      // Check if the message is for the current user
+      if (data.receiverId === user.id) {
+        log('New message notification is for current user - incrementing count');
+        incrementUnreadMessages();
+      }
+    });
+    
+    // Friend request handler
+    socket.on('new_friend_request', () => {
+      log('Socket: new_friend_request event received');
+      fetchFriendRequests();
     });
     
     // Clean up all listeners
     return () => {
       log('Cleaning up socket listeners');
       socket.off('receive_message', handleNewMessage);
-      socket.off('new_friend_request', handleFriendRequest);
-      socket.off('connect', handleConnect);
-      socket.off('disconnect', handleDisconnect);
-      socket.off('connect_error', handleConnectError);
       socket.off('new_message');
+      socket.off('new_friend_request');
     };
   }, [socket, user]);
 

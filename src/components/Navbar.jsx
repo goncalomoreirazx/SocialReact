@@ -4,11 +4,13 @@ import { HomeIcon, UserCircleIcon, PlusCircleIcon, ChatBubbleLeftIcon, UsersIcon
 import LoginModal from './auth/LoginModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
+import { useMessageNotifications } from '../contexts/MessageNotificationContext';
 
 function Navbar() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const { user, logout } = useAuth();
-  const { friendRequests, unreadMessages } = useNotifications();
+  const { friendRequests } = useNotifications(); // Keep this for friend requests
+  const { unreadCount, clearUnreadCount } = useMessageNotifications();
   
   // Debug counter to ensure component re-renders
   const [renderCount, setRenderCount] = useState(0);
@@ -19,11 +21,29 @@ function Navbar() {
     
     console.log('Navbar rendering with notification counts:', { 
       friendRequests, 
-      unreadMessages,
+      unreadMessages: unreadCount,
       renderCount: renderCount + 1,
       user: user?.id
     });
-  }, [friendRequests, unreadMessages, user]);
+  }, [friendRequests, unreadCount, user]);
+
+  // Add this useEffect to clear the unread count when clicking on Messages
+  useEffect(() => {
+    const handleMessagesClick = () => {
+      clearUnreadCount();
+    };
+    
+    const messagesLink = document.querySelector('a[href="/messages"]');
+    if (messagesLink) {
+      messagesLink.addEventListener('click', handleMessagesClick);
+    }
+    
+    return () => {
+      if (messagesLink) {
+        messagesLink.removeEventListener('click', handleMessagesClick);
+      }
+    };
+  }, [clearUnreadCount]);
 
   return (
     <>
@@ -54,12 +74,12 @@ function Navbar() {
                   <Link to="/messages" className="nav-link text-gray-600 relative">
                     <ChatBubbleLeftIcon className="h-6 w-6" />
                     <span className="hidden md:block">Messages</span>
-                    {(unreadMessages > 0) && (
+                    {(unreadCount > 0) && (
                       <span 
                         className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"
                         data-testid="message-badge"
                       >
-                        {unreadMessages}
+                        {unreadCount}
                       </span>
                     )}
                   </Link>

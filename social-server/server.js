@@ -181,10 +181,10 @@ io.on('connection', (socket) => {
       if (receiverSocketId) {
         console.log(`Sending message to receiver ${receiverId} via socket ${receiverSocketId}`);
         
-        // Send the message content
+        // Send the message content for chat display
         io.to(receiverSocketId).emit('receive_message', messageToSend);
         
-        // IMPORTANT: Also emit a separate event specifically for notifications
+        // IMPORTANT: Send a separate notification event 
         console.log('Emitting notification event for unread message');
         io.to(receiverSocketId).emit('new_message', {
           senderId: messageToSend.sender_id,
@@ -192,7 +192,7 @@ io.on('connection', (socket) => {
           messageId: messageToSend.id
         });
       } else {
-        console.log(`Receiver ${receiverId} is not online, can't send socket notification`);
+        console.log(`Receiver ${receiverId} is not online, message will be shown as unread on their next login`);
       }
   
       // Send back to sender for confirmation

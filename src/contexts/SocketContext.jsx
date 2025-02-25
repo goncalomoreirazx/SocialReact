@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 
@@ -15,6 +15,7 @@ const SocketContext = createContext();
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const { user, token } = useAuth();
+  const socketRef = useRef(null); // Keep a ref to the socket instance
 
   useEffect(() => {
     if (!user || !token) {
@@ -24,18 +25,26 @@ export const SocketProvider = ({ children }) => {
   
     log('Initializing socket connection', { userId: user.id });
     const newSocket = io('http://localhost:5000', {
-      autoConnect: false,
+      autoConnect: true, // Changed to true
       auth: { token },
-      transports: ['polling', 'websocket'],
-      // Try using these additional options
+      transports: ['websocket', 'polling'], // Put websocket first
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10, // Increased attempts
       reconnectionDelay: 1000,
+      timeout: 10000 // Add timeout option
     });
   
+    // Store in ref immediately
+    socketRef.current = newSocket;
+    
     // Add more detailed event handlers for debugging
     newSocket.on('connect', () => {
       log('Socket connected successfully', { socketId: newSocket.id });
+      
+      // Important: Only set the socket in state AFTER connection
+      setSocket(newSocket);
+      
+      // Register user after connection
       newSocket.emit('user_connected', user.id);
     });
   
@@ -62,12 +71,17 @@ export const SocketProvider = ({ children }) => {
     newSocket.on('reconnect_failed', () => {
       log('Socket reconnection failed after attempts');
     });
-  
-    // Connect the socket
-    log('Connecting socket...');
-    newSocket.connect();
-    setSocket(newSocket);
     
+    // Debug listener for all events
+    if (DEBUG) {
+      const originalOnevent = newSocket.onevent;
+      newSocket.onevent = function(packet) {
+        const args = packet.data || [];
+        log('EVENT RECEIVED', { event: args[0], data: args[1] });
+        originalOnevent.call(this, packet);
+      };
+    }
+  
     // Add socket to window for debugging
     if (DEBUG && window) {
       window.debugSocket = newSocket;
@@ -76,7 +90,11 @@ export const SocketProvider = ({ children }) => {
   
     return () => {
       log('Cleaning up socket connection');
-      newSocket.close();
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
+      }
+      setSocket(null);
       if (DEBUG && window && window.debugSocket) {
         delete window.debugSocket;
       }

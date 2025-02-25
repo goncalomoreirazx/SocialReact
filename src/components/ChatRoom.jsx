@@ -8,6 +8,7 @@ import MessageInput from './chat/MessageInput';
 import { useSocket } from '../contexts/SocketContext';
 import { ReplyIcon, X } from 'lucide-react';
 import { useNotifications } from '../contexts/NotificationContext';
+import { useMessageNotifications } from '../contexts/MessageNotificationContext';
 
 function ChatRoom() {
   const { id: friendId } = useParams();
@@ -22,6 +23,7 @@ function ChatRoom() {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const { fetchUnreadMessages } = useNotifications();
+  const { clearUnreadCount } = useMessageNotifications();
 
   const scrollToBottom = (behavior = 'auto') => {
     if (messagesEndRef.current) {
@@ -88,8 +90,9 @@ function ChatRoom() {
           }
         });
         
-        // Add this line to update the notification count:
+        // Update the notification counts:
         fetchUnreadMessages();
+        clearUnreadCount();
       } catch (error) {
         console.error('Error marking messages as read:', error);
       }
@@ -98,7 +101,7 @@ function ChatRoom() {
     if (friendId && token && !isLoading) {
       markAsRead();
     }
-  }, [friendId, token, isLoading, fetchUnreadMessages]);
+  }, [friendId, token, isLoading, fetchUnreadMessages, clearUnreadCount]);
 
   // Handle real-time messages
   useEffect(() => {
