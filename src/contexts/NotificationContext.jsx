@@ -56,8 +56,6 @@ export const NotificationProvider = ({ children }) => {
     }
   };
   
-  
-
   // Socket connection listener - monitor socket connection status
   useEffect(() => {
     log('Socket reference changed', { connected: !!socket });
@@ -107,20 +105,22 @@ export const NotificationProvider = ({ children }) => {
     
     log('Setting up socket event listeners', { userId: user.id, socketId: socket.id });
     
-    // Dummy event to test socket connection
-    socket.emit('test_notification_connection', { userId: user.id });
-    
-    
     // Friend request handler
-    socket.on('new_friend_request', () => {
+    const handleNewFriendRequest = () => {
       log('Socket: new_friend_request event received');
+      // Increment the friend request count directly
+      setFriendRequests(prev => prev + 1);
+      // Also fetch the full list to ensure we're in sync
       fetchFriendRequests();
-    });
+    };
+    
+    // Register the event listener
+    socket.on('new_friend_request', handleNewFriendRequest);
     
     // Clean up all listeners
     return () => {
       log('Cleaning up socket listeners');
-      socket.off('new_friend_request');
+      socket.off('new_friend_request', handleNewFriendRequest);
     };
   }, [socket, user]);
 
@@ -128,7 +128,6 @@ export const NotificationProvider = ({ children }) => {
     log('Clearing friend requests notifications');
     setFriendRequests(0);
   };
-
 
   const contextValue = {
     friendRequests, 

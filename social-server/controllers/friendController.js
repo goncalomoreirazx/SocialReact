@@ -25,7 +25,24 @@ export const sendFriendRequest = async (req, res) => {
         'INSERT INTO friends (user_id, friend_id, status) VALUES (?, ?, "pending")',
         [userId, friendId]
       );
-  
+      
+      // Get access to io from req object - it will be attached in server.js
+      const io = req.app.get('io');
+      
+      // Get the socket ID of the recipient from the connected users map
+      const connectedUsers = req.app.get('connectedUsers');
+      const receiverSocketId = connectedUsers.get(parseInt(friendId));
+      
+      console.log(`Sending friend request notification to user ${friendId}, socket ID: ${receiverSocketId}`);
+      
+      if (receiverSocketId) {
+        // Emit the event to the specific socket
+        io.to(receiverSocketId).emit('new_friend_request', { 
+          senderId: userId,
+          receiverId: friendId 
+        });
+      }
+      
       res.status(201).json({ message: 'Friend request sent successfully' });
     } catch (error) {
       console.error('Send friend request error:', error);
@@ -112,6 +129,34 @@ export const sendFriendRequest = async (req, res) => {
     }
   };
 
+  export const declineFriendRequest = async (req, res) => {
+    try {
+      const { requestId } = req.body;
+      const userId = req.user.userId;
+  
+      // Verify the request exists and is pending
+      const [request] = await db.promise().query(
+        'SELECT * FROM friends WHERE id = ? AND friend_id = ? AND status = "pending"',
+        [requestId, userId]
+      );
+  
+      if (request.length === 0) {
+        return res.status(404).json({ message: 'Friend request not found' });
+      }
+  
+      // Delete the friend request
+      await db.promise().query(
+        'DELETE FROM friends WHERE id = ?',
+        [requestId]
+      );
+  
+      res.json({ message: 'Friend request declined' });
+    } catch (error) {
+      console.error('Decline friend request error:', error);
+      res.status(500).json({ message: 'Error declining friend request' });
+    }
+  };
+
   export const removeFriend = async (req, res) => {
     try {
       const userId = req.user.userId;
@@ -131,3 +176,5 @@ export const sendFriendRequest = async (req, res) => {
       res.status(500).json({ message: 'Error removing friend' });
     }
   };
+
+  

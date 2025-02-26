@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, XMarkIcon, UserIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 
 const Search = () => {
@@ -9,40 +9,59 @@ const Search = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [error, setError] = useState(null);
   const { token } = useAuth();
   const navigate = useNavigate();
+  const inputRef = useRef(null);
+  const resultsRef = useRef(null);
+  const searchContainerRef = useRef(null);
 
+  // Handle click outside of search component
   useEffect(() => {
-    // Close results when clicking outside
     const handleClickOutside = (e) => {
-      if (!e.target.closest('#search-container') && showResults) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
         setShowResults(false);
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [showResults]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle escape key to close results
+  useEffect(() => {
+    const handleEscKey = (e) => {
+      if (e.key === 'Escape') {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => document.removeEventListener('keydown', handleEscKey);
+  }, []);
 
   // Handle search input
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
       setSearchResults([]);
       setShowResults(false);
+      setError(null);
       return;
     }
 
     setIsSearching(true);
     setShowResults(true);
+    setError(null);
 
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/users/search?searchTerm=${searchTerm}`,
+        `http://localhost:5000/api/users/search?searchTerm=${encodeURIComponent(searchTerm)}`,
         { headers: { Authorization: `Bearer ${token}` }}
       );
       setSearchResults(response.data);
     } catch (error) {
       console.error('Error searching:', error);
+      setError('Failed to search. Please try again.');
     } finally {
       setIsSearching(false);
     }
@@ -53,6 +72,8 @@ const Search = () => {
     const delaySearch = setTimeout(() => {
       if (searchTerm) {
         handleSearch();
+      } else {
+        setSearchResults([]);
       }
     }, 300);
 
@@ -63,28 +84,44 @@ const Search = () => {
     navigate(`/profile/${userId}`);
     setShowResults(false);
     setSearchTerm('');
+    inputRef.current?.blur();
+  };
+
+  const handleInputFocus = () => {
+    if (searchTerm.trim()) {
+      setShowResults(true);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setSearchResults([]);
+    setShowResults(false);
+    setError(null);
+    inputRef.current?.focus();
   };
 
   return (
-    <div id="search-container" className="relative">
-      <div className="flex items-center bg-gray-100 rounded-full px-4 py-2">
-        <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+    <div id="search-container" ref={searchContainerRef} className="relative w-full max-w-md">
+      {/* Search Input */}
+      <div className="flex items-center bg-gray-100 rounded-full px-3 py-2 transition-all duration-200 hover:bg-gray-200 focus-within:ring-2 focus-within:ring-blue-300 focus-within:bg-white">
+        <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
         <input
+          ref={inputRef}
           type="text"
           placeholder="Search users..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          onFocus={() => searchTerm && setShowResults(true)}
-          className="bg-transparent border-none focus:outline-none px-2 w-full"
+          onFocus={handleInputFocus}
+          className="bg-transparent border-none focus:outline-none px-2 w-full text-sm sm:text-base"
+          aria-label="Search users"
+          aria-expanded={showResults}
         />
         {searchTerm && (
           <button
-            onClick={() => {
-              setSearchTerm('');
-              setSearchResults([]);
-              setShowResults(false);
-            }}
-            className="text-gray-400 hover:text-gray-600"
+            onClick={handleClearSearch}
+            className="text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 p-1 rounded-full"
+            aria-label="Clear search"
           >
             <XMarkIcon className="h-5 w-5" />
           </button>
@@ -93,33 +130,70 @@ const Search = () => {
 
       {/* Search Results Dropdown */}
       {showResults && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg max-h-96 overflow-y-auto z-20">
+        <div 
+          ref={resultsRef}
+          className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl max-h-96 overflow-y-auto z-50 border border-gray-200 animate-fade-scale"
+          style={{ minWidth: '250px' }} 
+        >
           {isSearching ? (
-            <div className="p-4 text-center text-gray-500">Searching...</div>
+            <div className="p-4 text-center">
+              <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mb-2"></div>
+              <p className="text-gray-500">Searching users...</p>
+            </div>
+          ) : error ? (
+            <div className="p-4 text-center text-red-500">
+              <p>{error}</p>
+              <button 
+                onClick={handleSearch}
+                className="mt-2 text-blue-500 hover:underline text-sm"
+              >
+                Try again
+              </button>
+            </div>
           ) : searchResults.length > 0 ? (
             <div className="divide-y divide-gray-100">
               {searchResults.map(user => (
                 <div
                   key={user.id}
                   onClick={() => handleNavigateToProfile(user.id)}
-                  className="flex items-center p-3 hover:bg-gray-50 cursor-pointer"
+                  className="flex items-center p-3 hover:bg-blue-50 cursor-pointer transition-colors duration-150"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View ${user.username}'s profile`}
+                  onKeyDown={(e) => e.key === 'Enter' && handleNavigateToProfile(user.id)}
                 >
-                  <img
-                    src={user.profile_picture ? `http://localhost:5000/uploads/${user.profile_picture}` : '/default-avatar.png'}
-                    alt={user.username}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                  />
-                  <div className="ml-3">
+                  {user.profile_picture ? (
+                    <img
+                      src={`http://localhost:5000/uploads/${user.profile_picture}`}
+                      alt={user.username}
+                      className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '/default-avatar.png';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                      <UserIcon className="h-6 w-6" />
+                    </div>
+                  )}
+                  <div className="ml-3 overflow-hidden">
                     <p className="font-medium text-gray-900">{user.username}</p>
                     {user.bio && (
-                      <p className="text-sm text-gray-500 truncate">{user.bio}</p>
+                      <p className="text-sm text-gray-500 truncate max-w-xs">{user.bio}</p>
                     )}
                   </div>
                 </div>
               ))}
             </div>
           ) : searchTerm ? (
-            <div className="p-4 text-center text-gray-500">No users found</div>
+            <div className="p-6 text-center text-gray-500">
+              <div className="inline-block p-3 bg-gray-100 rounded-full mb-3">
+                <MagnifyingGlassIcon className="h-6 w-6 text-gray-400" />
+              </div>
+              <p className="font-medium text-gray-700 mb-1">No users found</p>
+              <p className="text-sm">Try a different search term</p>
+            </div>
           ) : null}
         </div>
       )}

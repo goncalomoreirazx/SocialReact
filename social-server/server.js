@@ -58,6 +58,13 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads/messages', express.static(path.join(__dirname, 'uploads/messages')));
 app.use('/uploads/posts', express.static(path.join(__dirname, 'uploads/posts')));
 
+// Connected users map
+const connectedUsers = new Map();
+
+// Make io and connectedUsers available in routes
+app.set('io', io);
+app.set('connectedUsers', connectedUsers);
+
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
@@ -92,9 +99,6 @@ io.use(async (socket, next) => {
     next(new Error('Invalid token'));
   }
 });
-
-// Connected users map
-const connectedUsers = new Map();
 
 // Socket connection handler
 io.on('connection', (socket) => {

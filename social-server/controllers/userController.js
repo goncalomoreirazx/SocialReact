@@ -137,40 +137,6 @@ export const searchUsers = async (req, res) => {
   }
 };
 
-// src/pages/FindFriends.jsx
-const handleAddFriend = async (userId, e) => {
-  e.stopPropagation(); // Prevent navigation when clicking the button
-  
-  try {
-    console.log('Sending friend request with:', {
-      friendId: userId,
-      token: token
-    });
-
-    const response = await axios.post(
-      'http://localhost:5000/api/users/add-friend',
-      { friendId: userId },
-      { 
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    if (response.data) {
-      // Update the local state to reflect the new friendship
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, isFriend: true } : user
-      ));
-    }
-  } catch (error) {
-    console.error('Error adding friend:', error.response?.data || error.message);
-    // You might want to show this error to the user
-  }
-};
-
-// controllers/userController.js
 export const addFriend = async (req, res) => {
   try {
     const { friendId } = req.body;
@@ -229,8 +195,23 @@ export const addFriend = async (req, res) => {
 
     console.log('Friendship created:', result);
 
+    // Get access to io and connectedUsers from app object
+    const io = req.app.get('io');
+    const connectedUsers = req.app.get('connectedUsers');
+    
+    // Send real-time notification if the recipient is online
+    const receiverSocketId = connectedUsers.get(parseInt(friendId));
+    
+    if (receiverSocketId) {
+      console.log(`Sending friend request notification to socket: ${receiverSocketId}`);
+      io.to(receiverSocketId).emit('new_friend_request', {
+        senderId: userId,
+        receiverId: friendId
+      });
+    }
+
     res.status(201).json({ 
-      message: 'Friend added successfully',
+      message: 'Friend request sent successfully',
       friendshipId: result.insertId
     });
   } catch (error) {
