@@ -5,7 +5,7 @@ import LoginModal from './auth/LoginModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useMessageNotifications } from '../contexts/MessageNotificationContext';
-
+import Search from './Search';
 function Navbar() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const { user, logout } = useAuth();
@@ -50,10 +50,16 @@ function Navbar() {
       <nav className="bg-white shadow-md sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
+          <div className="flex items-center">
             <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
               Social React
             </Link>
-
+            {user && (
+                <div className="hidden md:block w-64">
+                  <Search />
+                </div>
+              )}
+            </div>
             <div className="flex space-x-2">
               <Link to="/" className="nav-link text-gray-600">
                 <HomeIcon className="h-6 w-6" />
