@@ -118,8 +118,15 @@ function ChatRoom() {
         }
       });
 
+      socket.on('typing_status', ({ userId, isTyping }) => {
+        if (parseInt(userId) === parseInt(friendId)) {
+          setIsTyping(isTyping);
+        }
+      });
+
       return () => {
         socket.off('receive_message');
+        socket.off('typing_status');
       };
     }
   }, [socket, friendId, user.id]);
@@ -158,14 +165,17 @@ function ChatRoom() {
 
   if (isLoading || !friend) {
     return (
-      <div className="max-w-2xl mx-auto h-[calc(100vh-12rem)] flex items-center justify-center">
-        <div className="text-gray-500">Loading chat...</div>
+      <div className="w-full max-w-2xl mx-auto h-[calc(100vh-12rem)] sm:h-[calc(100vh-14rem)] lg:h-[calc(100vh-16rem)] flex items-center justify-center px-4">
+        <div className="text-gray-500 animate-pulse flex flex-col items-center">
+          <div className="w-8 h-8 border-t-2 border-b-2 border-gray-300 rounded-full animate-spin mb-2"></div>
+          <span>Loading chat...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto h-[calc(100vh-12rem)]">
+    <div className="w-full max-w-2xl mx-auto h-[calc(100vh-12rem)] sm:h-[calc(100vh-14rem)] lg:h-[calc(100vh-16rem)] px-2 sm:px-4">
       <div className="flex flex-col h-full bg-white rounded-lg shadow-md">
         <ChatHeader 
           user={friend}
@@ -174,20 +184,30 @@ function ChatRoom() {
         
         <div 
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"
+          className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 scroll-smooth"
         >
-          {messages.map((message) => (
-            <ChatMessage 
-              key={message.id} 
-              message={{
-                ...message,
-                isSentByUser: message.sender_id === user.id
-              }}
-              onReply={handleReply}
-            />
-          ))}
+          {messages.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center text-gray-500">
+                <p className="mb-2">No messages yet</p>
+                <p className="text-sm">Start a conversation with {friend.username}</p>
+              </div>
+            </div>
+          ) : (
+            messages.map((message) => (
+              <ChatMessage 
+                key={message.id} 
+                message={{
+                  ...message,
+                  isSentByUser: message.sender_id === user.id
+                }}
+                onReply={handleReply}
+              />
+            ))
+          )}
+          
           {isTyping && (
-            <div className="flex justify-start">
+            <div className="flex justify-start animate-fade-in">
               <div className="bg-gray-100 rounded-lg px-4 py-2">
                 <div className="typing-indicator">
                   <span></span>
@@ -201,17 +221,17 @@ function ChatRoom() {
         </div>
 
         {replyingTo && (
-          <div className="px-4 py-2 bg-gray-50 border-t flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <ReplyIcon className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-600">
+          <div className="px-3 sm:px-4 py-2 bg-gray-50 border-t flex justify-between items-center text-xs sm:text-sm">
+            <div className="flex items-center space-x-2 overflow-hidden">
+              <ReplyIcon className="h-4 w-4 flex-shrink-0 text-gray-500" />
+              <span className="text-gray-600 truncate">
                 Replying to: {replyingTo.content.substring(0, 50)}
                 {replyingTo.content.length > 50 ? '...' : ''}
               </span>
             </div>
             <button 
               onClick={() => setReplyingTo(null)}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 ml-2 flex-shrink-0"
             >
               <X className="h-4 w-4" />
             </button>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { PaperAirplaneIcon, FaceSmileIcon } from '@heroicons/react/24/solid';
-import { Image, X } from 'lucide-react';
+import { Image, X, Paperclip, Mic, Send } from 'lucide-react';
 import { useChat } from '../../hooks/useChat';
 import { useAuth } from '../../contexts/AuthContext';
 import EmojiPicker from 'emoji-picker-react';
@@ -10,21 +10,25 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
   const { startTyping, stopTyping } = useChat();
   const { token } = useAuth();
   const [typingTimeout, setTypingTimeout] = useState(null);
   const emojiPickerRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+  const formRef = useRef(null);
 
+  // Adjust textarea height automatically
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+      textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, 40), 150)}px`;
     }
   };
 
+  // Handle typing status
   const handleTyping = useCallback(() => {
     startTyping(friendId);
     
@@ -39,9 +43,41 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
     setTypingTimeout(timeout);
   }, [friendId, startTyping, stopTyping, typingTimeout]);
 
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        emojiPickerRef.current && 
+        !emojiPickerRef.current.contains(event.target) &&
+        !event.target.closest('button[data-emoji-button="true"]')
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Reset textarea height when message is sent
+  useEffect(() => {
+    if (message === '' && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  }, [message]);
+
+  // Handle file selection
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size exceeds 5MB limit');
+        return;
+      }
+      
       setSelectedImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -51,6 +87,7 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
     }
   };
 
+  // Remove selected image
   const removeImage = () => {
     setSelectedImage(null);
     setImagePreview(null);
@@ -59,11 +96,14 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
     }
   };
 
+  // Submit the form
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!message.trim() && !selectedImage) return;
+    if ((!message.trim() && !selectedImage) || isUploading) return;
     
     try {
+      setIsUploading(selectedImage);
+      
       if (selectedImage) {
         // Handle image upload with HTTP
         const formData = new FormData();
@@ -107,11 +147,20 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
+      
+      // Focus back on textarea
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 0);
+      
     } catch (error) {
       console.error('Error sending message:', error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
+  // Handle enter key
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault(); // Prevent default to avoid new line
@@ -119,43 +168,63 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
     }
   };
 
+  // Handle emoji selection
   const onEmojiClick = (emojiObject) => {
-    setMessage(prevMessage => prevMessage + emojiObject.emoji);
+    setMessage(prevMessage => {
+      const cursorPosition = textareaRef.current?.selectionStart || prevMessage.length;
+      const textBeforeCursor = prevMessage.slice(0, cursorPosition);
+      const textAfterCursor = prevMessage.slice(cursorPosition);
+      
+      return textBeforeCursor + emojiObject.emoji + textAfterCursor;
+    });
+    
+    setShowEmojiPicker(false);
     handleTyping();
+    
+    // Re-focus and adjust height after emoji insertion
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        adjustTextareaHeight();
+      }
+    }, 0);
   };
 
-  // Rest of your component remains the same...
-  // (Keep the useEffect and return JSX as they were)
-
   return (
-    <div className="p-4 border-t">
+    <div className="p-2 sm:p-4 border-t">
+      {/* Preview of selected image */}
       {imagePreview && (
-        <div className="mb-2 relative inline-block">
+        <div className="mb-3 relative rounded-lg overflow-hidden border border-gray-200 inline-flex bg-gray-50">
           <img 
             src={imagePreview} 
             alt="Selected" 
-            className="max-h-32 rounded-lg"
+            className="max-h-32 max-w-full object-contain"
           />
           <button
+            type="button"
             onClick={removeImage}
-            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+            className="absolute top-1 right-1 bg-gray-900 bg-opacity-70 text-white rounded-full p-1 hover:bg-opacity-90 transition-colors"
+            aria-label="Remove image"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3 w-3 sm:h-4 sm:w-4" />
           </button>
         </div>
       )}
       
-      <form onSubmit={handleSubmit} className="flex items-center space-x-2">
+      <form ref={formRef} onSubmit={handleSubmit} className="flex items-center space-x-1 sm:space-x-2">
+        {/* Hidden file input */}
         <input
           type="file"
           accept="image/*"
           onChange={handleImageSelect}
           className="hidden"
           ref={fileInputRef}
+          tabIndex="-1"
         />
 
-        <div className="flex-1 relative flex items-center bg-white border rounded-full">
-        <textarea
+        {/* Message input area */}
+        <div className="flex-1 relative flex items-center bg-white border border-gray-200 rounded-full shadow-sm">
+          <textarea
             ref={textareaRef}
             value={message}
             onChange={(e) => {
@@ -165,50 +234,66 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
             }}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
-            className="flex-1 p-2 pl-4 pr-4 rounded-full focus:outline-none resize-none overflow-y-auto min-h-[40px] max-h-32"
+            className="flex-1 py-2 px-3 sm:py-2.5 sm:px-4 rounded-full focus:outline-none resize-none overflow-y-auto min-h-[40px] max-h-32 text-sm sm:text-base"
             rows="1"
-            style={{ lineHeight: '20px' }}
-        />
+            style={{ lineHeight: '1.4' }}
+          />
           
-          <div className="flex items-center pr-2">
+          {/* Input actions */}
+          <div className="flex items-center pr-1 sm:pr-2 space-x-0.5 sm:space-x-1">
+            {/* Emoji picker */}
             <button
               type="button"
+              data-emoji-button="true"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+              className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+              aria-label="Add emoji"
             >
               <FaceSmileIcon className="h-5 w-5" />
             </button>
             
+            {/* Image upload */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+              className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+              aria-label="Upload image"
             >
               <Image className="h-5 w-5" />
             </button>
           </div>
 
+          {/* Emoji picker */}
           {showEmojiPicker && (
             <div
               ref={emojiPickerRef}
-              className="absolute bottom-12 right-0 z-50"
+              className="absolute bottom-full right-0 mb-2 z-50 shadow-lg rounded-lg overflow-hidden"
             >
               <EmojiPicker
                 onEmojiClick={onEmojiClick}
                 autoFocusSearch={false}
                 width={300}
                 height={400}
+                searchDisabled={window.innerWidth < 640}
+                skinTonesDisabled={window.innerWidth < 640}
+                lazyLoadEmojis={true}
               />
             </div>
           )}
         </div>
 
+        {/* Send button */}
         <button
           type="submit"
-          disabled={!message.trim() && !selectedImage}
-          className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={(!message.trim() && !selectedImage) || isUploading}
+          className="p-2 sm:p-3 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center justify-center"
+          aria-label="Send message"
         >
-          <PaperAirplaneIcon className="h-5 w-5" />
+          {isUploading ? (
+            <div className="h-5 w-5 rounded-full border-2 border-t-transparent border-white animate-spin"></div>
+          ) : (
+            <PaperAirplaneIcon className="h-5 w-5" />
+          )}
         </button>
       </form>
     </div>
