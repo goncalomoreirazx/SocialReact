@@ -25,13 +25,13 @@ export const SocketProvider = ({ children }) => {
   
     log('Initializing socket connection', { userId: user.id });
     const newSocket = io('http://localhost:5000', {
-      autoConnect: true, // Changed to true
+      autoConnect: true,
       auth: { token },
-      transports: ['websocket', 'polling'], // Put websocket first
+      transports: ['websocket', 'polling'], // Try WebSocket first, fall back to polling
       reconnection: true,
-      reconnectionAttempts: 10, // Increased attempts
+      reconnectionAttempts: 10,
       reconnectionDelay: 1000,
-      timeout: 10000 // Add timeout option
+      timeout: 10000
     });
   
     // Store in ref immediately
@@ -46,18 +46,43 @@ export const SocketProvider = ({ children }) => {
       
       // Register user after connection
       newSocket.emit('user_connected', user.id);
+      
+      // Re-join all active rooms/conversations after reconnect
+      if (window.activeConversations) {
+        window.activeConversations.forEach(id => {
+          log(`Rejoining conversation ${id} after reconnect`);
+          newSocket.emit('join_conversation', id);
+        });
+      }
     });
   
     newSocket.on('connect_error', (error) => {
       log('Socket connection error', error);
+      // Try to reconnect after a short delay
+      setTimeout(() => {
+        log('Attempting to reconnect socket...');
+        if (newSocket) newSocket.connect();
+      }, 3000);
     });
     
     newSocket.on('disconnect', (reason) => {
       log('Socket disconnected', { reason });
+      // If the disconnection was not intentional, try to reconnect
+      if (reason === 'io server disconnect' || reason === 'transport close') {
+        log('Attempting to reconnect socket after disconnect...');
+        setTimeout(() => {
+          if (newSocket) newSocket.connect();
+        }, 3000);
+      }
     });
     
     newSocket.on('reconnect', (attemptNumber) => {
       log('Socket reconnected after', { attemptNumber });
+      
+      // Reregister user after reconnect
+      if (user && user.id) {
+        newSocket.emit('user_connected', user.id);
+      }
     });
     
     newSocket.on('reconnect_attempt', (attemptNumber) => {
@@ -70,6 +95,15 @@ export const SocketProvider = ({ children }) => {
     
     newSocket.on('reconnect_failed', () => {
       log('Socket reconnection failed after attempts');
+      // Create a new socket instance as a last resort
+      setTimeout(() => {
+        log('Creating new socket instance after failed reconnections');
+        setSocket(null);
+        if (socketRef.current) {
+          socketRef.current.close();
+          socketRef.current = null;
+        }
+      }, 5000);
     });
     
     // Debug listener for all events
@@ -86,17 +120,29 @@ export const SocketProvider = ({ children }) => {
     if (DEBUG && window) {
       window.debugSocket = newSocket;
       log('Socket exposed as window.debugSocket');
+      
+      // Add helper function to test connection
+      window.testSocketConnection = () => {
+        if (socketRef.current) {
+          log('Testing socket connection...');
+          socketRef.current.emit('ping');
+        } else {
+          log('No socket connection to test');
+        }
+      };
     }
   
     return () => {
       log('Cleaning up socket connection');
       if (socketRef.current) {
-        socketRef.current.close();
+        // Properly disconnect
+        socketRef.current.disconnect();
         socketRef.current = null;
       }
       setSocket(null);
-      if (DEBUG && window && window.debugSocket) {
-        delete window.debugSocket;
+      if (DEBUG && window) {
+        if (window.debugSocket) delete window.debugSocket;
+        if (window.testSocketConnection) delete window.testSocketConnection;
       }
     };
   }, [user, token]);

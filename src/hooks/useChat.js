@@ -13,6 +13,13 @@ export const useChat = () => {
         return;
       }
 
+      console.log('Sending message via useChat hook:', {
+        senderId: user.id,
+        receiverId,
+        content,
+        replyToId
+      });
+
       socket.emit('send_message', {
         senderId: user.id,
         receiverId,
@@ -20,25 +27,38 @@ export const useChat = () => {
         replyToId
       });
 
+      // Listen for a response with this specific message
       const messageHandler = (message) => {
-        socket.off('message_sent', messageHandler);
-        socket.off('message_error', errorHandler);
-        resolve(message);
+        console.log('Received message confirmation:', message);
+        if (message.sender_id === user.id && 
+            message.receiver_id === receiverId && 
+            message.content === content) {
+          // This is our message
+          socket.off('receive_message', messageHandler);
+          socket.off('message_error', errorHandler);
+          resolve(message);
+        }
       };
 
       const errorHandler = (error) => {
-        socket.off('message_sent', messageHandler);
+        console.error('Message error received:', error);
+        socket.off('receive_message', messageHandler);
         socket.off('message_error', errorHandler);
         reject(error);
       };
 
-      socket.on('message_sent', messageHandler);
+      // Listen for the receive_message event instead of message_sent
+      socket.on('receive_message', messageHandler);
       socket.on('message_error', errorHandler);
 
+      // Set a timeout to prevent hanging if no response
       setTimeout(() => {
-        socket.off('message_sent', messageHandler);
+        socket.off('receive_message', messageHandler);
         socket.off('message_error', errorHandler);
-        reject(new Error('Message timeout'));
+        console.warn('Message sending timed out after 5 seconds');
+        // Not rejecting since the message might have been sent successfully
+        // Just resolving with null to allow the UI to continue
+        resolve(null);
       }, 5000);
     });
   }, [socket, user]);

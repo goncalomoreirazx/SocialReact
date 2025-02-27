@@ -99,10 +99,13 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
   // Submit the form
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if ((!message.trim() && !selectedImage) || isUploading) return;
+    // Check if we have content to send - either text message or an image
+    const hasContent = message.trim() || selectedImage;
+    
+    if (!hasContent || isUploading) return;
     
     try {
-      setIsUploading(selectedImage);
+      setIsUploading(selectedImage ? true : false);
       
       if (selectedImage) {
         // Handle image upload with HTTP
@@ -159,7 +162,6 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
       setIsUploading(false);
     }
   };
-
   // Handle enter key
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {

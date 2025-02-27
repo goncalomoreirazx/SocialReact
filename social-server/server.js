@@ -135,6 +135,11 @@ io.on('connection', (socket) => {
       console.log('socket.on send_message received:', data);
       const { id, senderId, receiverId, content, replyToId } = data;
       
+      // Simple validation
+      if (!senderId || !receiverId) {
+        throw new Error('Missing required fields: senderId and receiverId');
+      }
+      
       if (senderId !== socket.user.userId) {
         throw new Error('Unauthorized message sender');
       }
@@ -146,42 +151,57 @@ io.on('connection', (socket) => {
         messageToSend = data;
         console.log('Using existing message data with id:', id);
       } else {
-        // Create new text message
-        console.log('Creating new message in database');
-        const [result] = await db.promise().query(
-          'INSERT INTO messages (sender_id, receiver_id, content, reply_to_id) VALUES (?, ?, ?, ?)',
-          [senderId, receiverId, content || '', replyToId || null]
-        );
-  
-        // Fetch complete message
-        console.log('Fetching complete message data for id:', result.insertId);
-        const [newMessage] = await db.promise().query(
-          `SELECT m.*, 
-            u.username as sender_name, 
-            u.profile_picture as sender_profile_picture,
-            r.content as reply_content,
-            r.sender_id as reply_sender_id,
-            ru.username as reply_sender_name
-          FROM messages m
-          JOIN users u ON m.sender_id = u.id
-          LEFT JOIN messages r ON m.reply_to_id = r.id
-          LEFT JOIN users ru ON r.sender_id = ru.id
-          WHERE m.id = ?`,
-          [result.insertId]
-        );
-  
-        messageToSend = {
-          ...newMessage[0],
-          replyTo: newMessage[0].reply_content ? {
-            content: newMessage[0].reply_content,
-            sender_id: newMessage[0].reply_sender_id,
-            sender_name: newMessage[0].reply_sender_name
-          } : null
-        };
+        try {
+          // Create new text message
+          console.log('Creating new message in database');
+          const [result] = await db.promise().query(
+            'INSERT INTO messages (sender_id, receiver_id, content, reply_to_id) VALUES (?, ?, ?, ?)',
+            [senderId, receiverId, content || '', replyToId || null]
+          );
+    
+          // Fetch complete message
+          console.log('Fetching complete message data for id:', result.insertId);
+          const [newMessage] = await db.promise().query(
+            `SELECT m.*, 
+              u.username as sender_name, 
+              u.profile_picture as sender_profile_picture,
+              r.content as reply_content,
+              r.sender_id as reply_sender_id,
+              ru.username as reply_sender_name
+            FROM messages m
+            JOIN users u ON m.sender_id = u.id
+            LEFT JOIN messages r ON m.reply_to_id = r.id
+            LEFT JOIN users ru ON r.sender_id = ru.id
+            WHERE m.id = ?`,
+            [result.insertId]
+          );
+    
+          if (!newMessage || newMessage.length === 0) {
+            throw new Error('Failed to retrieve the newly created message');
+          }
+    
+          messageToSend = {
+            ...newMessage[0],
+            replyTo: newMessage[0].reply_content ? {
+              content: newMessage[0].reply_content,
+              sender_id: newMessage[0].reply_sender_id,
+              sender_name: newMessage[0].reply_sender_name
+            } : null
+          };
+        } catch (dbError) {
+          console.error('Database error when creating message:', dbError);
+          throw new Error(`Database error: ${dbError.message}`);
+        }
       }
   
+      console.log('Final messageToSend object:', messageToSend);
+      
+      // Always send back to sender for confirmation first (to replace temp message)
+      console.log('Sending confirmation back to sender');
+      socket.emit('receive_message', messageToSend);
+      
       // Send to receiver if online
-      const receiverSocketId = connectedUsers.get(receiverId);
+      const receiverSocketId = connectedUsers.get(parseInt(receiverId));
       if (receiverSocketId) {
         console.log(`Sending message to receiver ${receiverId} via socket ${receiverSocketId}`);
         
@@ -198,14 +218,12 @@ io.on('connection', (socket) => {
       } else {
         console.log(`Receiver ${receiverId} is not online, message will be shown as unread on their next login`);
       }
-  
-      // Send back to sender for confirmation
-      console.log('Sending confirmation back to sender');
-      socket.emit('receive_message', messageToSend);
-      
     } catch (error) {
       console.error('Error handling message:', error);
-      socket.emit('message_error', { error: 'Failed to send message' });
+      socket.emit('message_error', { 
+        error: 'Failed to send message', 
+        details: error.message 
+      });
     }
   });
   
