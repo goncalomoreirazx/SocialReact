@@ -3,6 +3,7 @@ import { PaperAirplaneIcon, FaceSmileIcon } from '@heroicons/react/24/solid';
 import { Image, X, Paperclip, Mic, Send } from 'lucide-react';
 import { useChat } from '../../hooks/useChat';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSocket } from '../../contexts/SocketContext';
 import EmojiPicker from 'emoji-picker-react';
 
 function MessageInput({ onSubmit, friendId, replyingTo }) {
@@ -12,12 +13,13 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
   const [imagePreview, setImagePreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const { startTyping, stopTyping } = useChat();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [typingTimeout, setTypingTimeout] = useState(null);
   const emojiPickerRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const formRef = useRef(null);
+  const socket = useSocket();
 
   // Adjust textarea height automatically
   const adjustTextareaHeight = () => {
@@ -99,13 +101,10 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
   // Submit the form
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Check if we have content to send - either text message or an image
-    const hasContent = message.trim() || selectedImage;
-    
-    if (!hasContent || isUploading) return;
+    if ((!message.trim() && !selectedImage) || isUploading) return;
     
     try {
-      setIsUploading(selectedImage ? true : false);
+      setIsUploading(true);
       
       if (selectedImage) {
         // Handle image upload with HTTP
@@ -120,6 +119,7 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
           formData.append('replyToId', replyingTo.id);
         }
   
+        console.log('Sending message with image via HTTP');
         const response = await fetch('http://localhost:5000/api/messages', {
           method: 'POST',
           headers: {
@@ -133,14 +133,27 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
         }
   
         const newMessage = await response.json();
-        onSubmit(newMessage); // This will trigger handleSendMessage with the complete message
+        console.log('Message with image sent successfully:', newMessage);
+        
+        // Submit the message to parent component
+        onSubmit(newMessage);
+        
+        // Also emit via socket for better real-time consistency
+        if (socket && socket.connected) {
+          socket.emit('send_message', newMessage);
+        }
       } else {
-        // Text-only message
-        onSubmit({
+        // Text-only message via socket
+        console.log('Sending text message via socket');
+        const messageData = {
           content: message.trim(),
           receiverId: friendId,
-          replyToId: replyingTo?.id
-        });
+          replyToId: replyingTo?.id,
+          senderId: user.id // Ensure sender ID is included
+        };
+        
+        // Submit to parent component
+        onSubmit(messageData);
       }
       
       // Clear form
@@ -158,10 +171,13 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
       
     } catch (error) {
       console.error('Error sending message:', error);
+      // Show a more user-friendly error message
+      alert('Failed to send message. Please check your connection and try again.');
     } finally {
       setIsUploading(false);
     }
   };
+
   // Handle enter key
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {

@@ -100,59 +100,36 @@ function ChatRoom() {
     }
   }, [friendId, token, isLoading, clearUnreadCount]);
 
-   // Handle real-time messages
+   
   // Handle real-time messages
   useEffect(() => {
     if (socket) {
-      const handleReceiveMessage = (message) => {
-        console.log('Received message via socket:', message);
-        
-        // Make sure message has required fields
-        if (!message || !message.sender_id || !message.receiver_id) {
-          console.error('Received invalid message:', message);
-          return;
-        }
-        
-        // Only process messages to/from this friend
+      const handleNewMessage = (message) => {
+        console.log('Received message in chat room:', message);
+        // Check if this message belongs to this chat
         if (message.sender_id === parseInt(friendId) || 
             message.receiver_id === parseInt(friendId)) {
-            
           setMessages(prev => {
-            // Check if we have a temp version of this message
-            const tempIndex = prev.findIndex(m => 
-              m.id && m.id.toString().startsWith('temp-') && 
-              m.content === message.content &&
-              m.sender_id === message.sender_id);
-              
-            // If we have a temp version, replace it
-            if (tempIndex !== -1) {
-              const newMessages = [...prev];
-              newMessages[tempIndex] = {
-                ...message,
-                isSentByUser: message.sender_id === user.id
-              };
-              return newMessages;
-            }
-            
-            // Otherwise check if this message already exists (to avoid duplicates)
+            // Check if message already exists by ID to avoid duplicates
             const messageExists = prev.some(m => m.id === message.id);
             if (messageExists) return prev;
             
-            // Add as a new message
+            console.log('Adding new message to chat:', message);
+            // Add the new message
             return [...prev, {
               ...message,
               isSentByUser: message.sender_id === user.id
             }];
           });
           
-          // Mark as read if we're the receiver
-          if (message.receiver_id === user.id && message.sender_id === parseInt(friendId)) {
+          // Mark as read immediately if this is from the friend
+          if (message.sender_id === parseInt(friendId)) {
             fetch(`http://localhost:5000/api/messages/${friendId}/read`, {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`
               }
-            }).catch(err => console.error('Error marking messages as read:', err));
+            }).catch(err => console.error('Error marking message as read:', err));
           }
         }
       };
@@ -163,24 +140,18 @@ function ChatRoom() {
         }
       };
 
-      const handleMessageError = (error) => {
-        console.error('Message error received:', error);
-        // You could add UI error handling here
-      };
-
-      // Register event listeners
-      socket.on('receive_message', handleReceiveMessage);
+      // Add event listeners
+      socket.on('receive_message', handleNewMessage);
       socket.on('typing_status', handleTypingStatus);
-      socket.on('message_error', handleMessageError);
 
       return () => {
-        socket.off('receive_message', handleReceiveMessage);
+        // Clean up event listeners
+        socket.off('receive_message', handleNewMessage);
         socket.off('typing_status', handleTypingStatus);
-        socket.off('message_error', handleMessageError);
       };
     }
   }, [socket, friendId, user.id, token]);
-
+  
   //Reply
   const handleReply = (message) => {
     setReplyingTo(message);

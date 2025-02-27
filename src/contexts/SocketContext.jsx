@@ -22,16 +22,23 @@ export const SocketProvider = ({ children }) => {
       log('No user or token, not connecting socket');
       return;
     }
+    
+    // Check if we already have a socket connection
+    if (socketRef.current && socketRef.current.connected) {
+      log('Socket already connected, reusing existing connection', { socketId: socketRef.current.id });
+      setSocket(socketRef.current);
+      return;
+    }
   
     log('Initializing socket connection', { userId: user.id });
     const newSocket = io('http://localhost:5000', {
-      autoConnect: true,
+      autoConnect: true, // Changed to true
       auth: { token },
-      transports: ['websocket', 'polling'], // Try WebSocket first, fall back to polling
+      transports: ['websocket', 'polling'], // Put websocket first
       reconnection: true,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: 10, // Increased attempts
       reconnectionDelay: 1000,
-      timeout: 10000
+      timeout: 10000 // Add timeout option
     });
   
     // Store in ref immediately

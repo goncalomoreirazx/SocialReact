@@ -1,65 +1,72 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import { useAuth } from '../contexts/AuthContext';
 
 export const useChat = () => {
   const socket = useSocket();
   const { user } = useAuth();
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
+
+  // Check if socket is connected when the hook is initialized
+  if (socket && socket.connected !== isSocketConnected) {
+    setIsSocketConnected(socket.connected);
+  }
 
   const sendMessage = useCallback((receiverId, content, replyToId = null) => {
     return new Promise((resolve, reject) => {
       if (!socket) {
+        console.error('Socket not available');
         reject(new Error('Socket not connected'));
         return;
       }
 
-      console.log('Sending message via useChat hook:', {
+      if (!socket.connected) {
+        console.error('Socket not connected, attempting to reconnect');
+        socket.connect();
+        reject(new Error('Socket not connected, please try again'));
+        return;
+      }
+
+      const messageData = {
         senderId: user.id,
         receiverId,
         content,
         replyToId
-      });
+      };
 
-      socket.emit('send_message', {
-        senderId: user.id,
-        receiverId,
-        content,
-        replyToId
-      });
+      console.log('Sending message via socket:', messageData);
+      
+      socket.emit('send_message', messageData);
 
-      // Listen for a response with this specific message
+      // Listen for confirmation or error
       const messageHandler = (message) => {
-        console.log('Received message confirmation:', message);
-        if (message.sender_id === user.id && 
-            message.receiver_id === receiverId && 
-            message.content === content) {
-          // This is our message
-          socket.off('receive_message', messageHandler);
+        console.log('Message confirmation received:', message);
+        if (message.sender_id === user.id && message.receiver_id === receiverId) {
+          socket.off('message_sent', messageHandler);
           socket.off('message_error', errorHandler);
+          clearTimeout(timeoutId);
           resolve(message);
         }
       };
 
       const errorHandler = (error) => {
         console.error('Message error received:', error);
-        socket.off('receive_message', messageHandler);
+        socket.off('message_sent', messageHandler);
         socket.off('message_error', errorHandler);
+        clearTimeout(timeoutId);
         reject(error);
       };
 
-      // Listen for the receive_message event instead of message_sent
-      socket.on('receive_message', messageHandler);
+      socket.on('message_sent', messageHandler);
       socket.on('message_error', errorHandler);
 
-      // Set a timeout to prevent hanging if no response
-      setTimeout(() => {
-        socket.off('receive_message', messageHandler);
+      // Set timeout to prevent hanging if no response
+      const timeoutId = setTimeout(() => {
+        console.warn('Message send timeout');
+        socket.off('message_sent', messageHandler);
         socket.off('message_error', errorHandler);
-        console.warn('Message sending timed out after 5 seconds');
-        // Not rejecting since the message might have been sent successfully
-        // Just resolving with null to allow the UI to continue
-        resolve(null);
-      }, 5000);
+        reject(new Error('Message timeout - no response from server'));
+      }, 8000); // Increased timeout for better reliability
     });
   }, [socket, user]);
 
