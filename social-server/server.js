@@ -198,16 +198,25 @@ io.on('connection', (socket) => {
       } else {
         console.log(`Receiver ${receiverId} is not online, message will be shown as unread on their next login`);
       }
-  
+      
+
       // Send back to sender for confirmation (using socket.emit)
       console.log('Sending confirmation back to sender');
       socket.emit('receive_message', messageToSend);
-      
-      // Broadcast to all - also send to all clients including sender for better consistency
-      // This helps with multiple tabs/windows from the same user
-      console.log('Broadcasting message to all connected clients');
-      io.emit('receive_message', messageToSend);
-      
+
+      // Send to everyone EXCEPT the sender (this way receiver gets it once)
+      console.log('Broadcasting message to all except sender');
+      socket.broadcast.emit('receive_message', messageToSend);
+
+      // Notification is still sent directly only to the receiver
+      if (receiverSocketId) {
+        console.log('Emitting notification event for unread message');
+        io.to(receiverSocketId).emit('new_message', {
+          senderId: messageToSend.sender_id,
+          receiverId: messageToSend.receiver_id,
+          messageId: messageToSend.id
+        });
+      }
     } catch (error) {
       console.error('Error handling message:', error);
       socket.emit('message_error', { error: 'Failed to send message' });

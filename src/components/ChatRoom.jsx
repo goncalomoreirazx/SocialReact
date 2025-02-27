@@ -160,31 +160,57 @@ function ChatRoom() {
   const handleSendMessage = async (messageData) => {
     try {
       if (messageData.id) {
-        setMessages(prev => [...prev, {
-          ...messageData,
-          isSentByUser: messageData.sender_id === user.id
-        }]);
+        // This is an already created message (likely from image upload)
+        console.log('Handling pre-created message with ID:', messageData.id);
         
-        socket.emit('send_message', {
-          ...messageData,
-          senderId: user.id,
-          receiverId: parseInt(friendId)
+        // Add to local state first for immediate UI update
+        setMessages(prev => {
+          // Check for duplicates
+          const messageExists = prev.some(m => m.id === messageData.id);
+          if (messageExists) return prev;
+          
+          return [...prev, {
+            ...messageData,
+            isSentByUser: messageData.sender_id === user.id
+          }];
         });
+        
+        // Broadcast via socket to ensure real-time updates for all clients
+        if (socket && socket.connected) {
+          socket.emit('send_message', {
+            ...messageData,
+            senderId: user.id,
+            receiverId: parseInt(friendId)
+          });
+        } else {
+          console.warn('Socket not connected, message may not be delivered in real-time');
+        }
       } else {
-        socket.emit('send_message', {
-          senderId: user.id,
-          receiverId: parseInt(friendId),
-          content: messageData.content,
-          replyToId: messageData.replyToId
-        });
+        // This is a new text message
+        console.log('Handling new text message');
+        
+        // For text messages, we just emit via socket - server will handle storage
+        if (socket && socket.connected) {
+          socket.emit('send_message', {
+            senderId: user.id,
+            receiverId: parseInt(friendId),
+            content: messageData.content,
+            replyToId: messageData.replyToId
+          });
+        } else {
+          throw new Error('Socket not connected. Cannot send message.');
+        }
       }
       
+      // Clear reply state regardless of success/failure
       setReplyingTo(null);
     } catch (error) {
       console.error('Error handling message:', error);
+      // Provide user feedback on error
+      alert('Failed to send message. Please check your connection and try again.');
     }
   };
-
+  
   if (isLoading || !friend) {
     return (
       <div className="w-full max-w-2xl mx-auto h-[calc(100vh-12rem)] sm:h-[calc(100vh-14rem)] lg:h-[calc(100vh-16rem)] flex items-center justify-center px-4">
