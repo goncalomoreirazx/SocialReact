@@ -29,6 +29,7 @@ const uploadsDir = path.join(__dirname, 'uploads');
 const messagesDir = path.join(__dirname, 'uploads/messages');
 const postsDir = path.join(__dirname, 'uploads/posts');
 
+
 [uploadsDir, messagesDir, postsDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -53,11 +54,11 @@ const io = new Server(httpServer, {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Static file serving - make sure these come before your routes
+// Static file serving configuration
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads/covers', express.static(path.join(__dirname, 'uploads/covers')));
 app.use('/uploads/messages', express.static(path.join(__dirname, 'uploads/messages')));
 app.use('/uploads/posts', express.static(path.join(__dirname, 'uploads/posts')));
-
 // Connected users map
 const connectedUsers = new Map();
 

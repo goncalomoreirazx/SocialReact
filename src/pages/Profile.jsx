@@ -110,8 +110,26 @@ const Profile = () => {
       <div className="pt-4 px-4 md:pt-6 md:px-6">
         {/* Profile Card */}
         <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
-          {/* Cover Photo Area - You could add a proper cover photo here */}
-          <div className="h-32 sm:h-48 bg-gradient-to-r from-blue-400 to-purple-500 relative">
+          {/* Cover Photo Area */}
+          <div className="h-32 sm:h-48 relative">
+            {user.cover_photo ? (
+              <img 
+                src={`http://localhost:5000/uploads/${user.cover_photo}`}
+                alt="Cover"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  console.error("Error loading cover photo:", e);
+                  e.target.onerror = null;
+                  e.target.src = '/default-cover.png';
+                  // Fallback to gradient if image fails
+                  e.target.classList.add('bg-gradient-to-r', 'from-blue-400', 'to-purple-500');
+                }}
+              />
+            ) : (
+              // Default gradient if no cover photo is set
+              <div className="w-full h-full bg-gradient-to-r from-blue-400 to-purple-500"></div>
+            )}
+            
             <button
               onClick={() => setIsSideMenuOpen(true)}
               className="absolute top-4 right-4 bg-white/70 backdrop-blur-sm text-gray-700 hover:text-gray-900 p-2 rounded-full hover:bg-white/90 transition-all"
@@ -128,6 +146,10 @@ const Profile = () => {
                   src={user.profile_picture ? `http://localhost:5000/uploads/${user.profile_picture}` : '/default-avatar.png'}
                   alt={user.username}
                   className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/default-avatar.png';
+                  }}
                 />
               </div>
             </div>

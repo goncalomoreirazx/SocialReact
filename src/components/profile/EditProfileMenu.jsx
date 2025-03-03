@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { XMarkIcon, PhotoIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PhotoIcon, CheckCircleIcon, CameraIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
 
 const EditProfileMenu = ({ isOpen, onClose, userData, onUpdate }) => {
     const [bio, setBio] = useState(userData?.bio || '');
     const [newProfilePhoto, setNewProfilePhoto] = useState(null);
     const [photoPreview, setPhotoPreview] = useState(null);
+    const [newCoverPhoto, setNewCoverPhoto] = useState(null);
+    const [coverPhotoPreview, setCoverPhotoPreview] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [error, setError] = useState(null);
-    const fileInputRef = useRef(null);
+    const profileFileInputRef = useRef(null);
+    const coverFileInputRef = useRef(null);
     const menuRef = useRef(null);
     const { token } = useAuth();
     
@@ -20,6 +23,8 @@ const EditProfileMenu = ({ isOpen, onClose, userData, onUpdate }) => {
             setBio(userData.bio || '');
             setPhotoPreview(null);
             setNewProfilePhoto(null);
+            setCoverPhotoPreview(null);
+            setNewCoverPhoto(null);
             setError(null);
             setSuccessMessage('');
         }
@@ -53,9 +58,23 @@ const EditProfileMenu = ({ isOpen, onClose, userData, onUpdate }) => {
         };
     }, [isOpen, onClose]);
 
-    const handleFileChange = (e) => {
+    const handleProfilePhotoChange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            // Validate file type
+            const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+            if (!validImageTypes.includes(file.type)) {
+                setError('Please select a valid image file (JPEG, PNG, GIF)');
+                return;
+            }
+            
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                setError('File size must be less than 5MB');
+                return;
+            }
+            
+            setError(null);
             setNewProfilePhoto(file);
             
             const reader = new FileReader();
@@ -66,11 +85,46 @@ const EditProfileMenu = ({ isOpen, onClose, userData, onUpdate }) => {
         }
     };
 
-    const handleRemovePhoto = () => {
+    const handleCoverPhotoChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Validate file type
+            const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+            if (!validImageTypes.includes(file.type)) {
+                setError('Please select a valid image file (JPEG, PNG, GIF)');
+                return;
+            }
+            
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                setError('File size must be less than 5MB');
+                return;
+            }
+            
+            setError(null);
+            setNewCoverPhoto(file);
+            
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setCoverPhotoPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveProfilePhoto = () => {
         setNewProfilePhoto(null);
         setPhotoPreview(null);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
+        if (profileFileInputRef.current) {
+            profileFileInputRef.current.value = '';
+        }
+    };
+
+    const handleRemoveCoverPhoto = () => {
+        setNewCoverPhoto(null);
+        setCoverPhotoPreview(null);
+        if (coverFileInputRef.current) {
+            coverFileInputRef.current.value = '';
         }
     };
 
@@ -82,11 +136,18 @@ const EditProfileMenu = ({ isOpen, onClose, userData, onUpdate }) => {
         
         const formData = new FormData();
         formData.append('bio', bio);
+        
         if (newProfilePhoto) {
-            formData.append('photo', newProfilePhoto);
+            formData.append('profilePhoto', newProfilePhoto);
+        }
+        
+        if (newCoverPhoto) {
+            formData.append('coverPhoto', newCoverPhoto);
         }
        
         try {
+            console.log('Updating profile for user ID:', userData.id);
+            
             const response = await axios.put(
                 `http://localhost:5000/api/users/${userData.id}/update`,
                 formData,
@@ -108,7 +169,12 @@ const EditProfileMenu = ({ isOpen, onClose, userData, onUpdate }) => {
             
         } catch (error) {
             console.error('Error updating profile:', error.response?.data || error);
-            setError(error.response?.data?.message || 'Failed to update profile. Please try again.');
+            
+            const errorMessage = error.response?.data?.message || 
+                                error.response?.data?.error || 
+                                'Failed to update profile. Please try again.';
+                                
+            setError(errorMessage);
         } finally {
             setIsSubmitting(false);
         }
@@ -167,6 +233,60 @@ const EditProfileMenu = ({ isOpen, onClose, userData, onUpdate }) => {
                                 />
                             </div>
                             
+                            {/* Cover Photo Section */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Cover Photo</label>
+                                
+                                {coverPhotoPreview ? (
+                                    <div className="relative rounded-lg overflow-hidden mb-3 h-32 bg-gray-100">
+                                        <img 
+                                            src={coverPhotoPreview} 
+                                            alt="Cover preview" 
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={handleRemoveCoverPhoto}
+                                            className="absolute top-2 right-2 bg-white rounded-full p-1 shadow hover:bg-gray-100"
+                                        >
+                                            <XMarkIcon className="h-5 w-5 text-gray-700" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    userData?.cover_photo && (
+                                        <div className="relative rounded-lg overflow-hidden mb-3 h-32 bg-gray-100">
+                                            <img 
+                                                src={`http://localhost:5000/uploads/${userData.cover_photo}`} 
+                                                alt="Current cover" 
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    e.target.onerror = null;
+                                                    e.target.src = '/default-cover.png';
+                                                }}
+                                            />
+                                        </div>
+                                    )
+                                )}
+                                
+                                <input
+                                    type="file"
+                                    ref={coverFileInputRef}
+                                    onChange={handleCoverPhotoChange}
+                                    className="hidden"
+                                    accept="image/jpeg, image/png, image/gif, image/webp, image/bmp"
+                                />
+                                
+                                <button
+                                    type="button"
+                                    onClick={() => coverFileInputRef.current?.click()}
+                                    className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mb-6"
+                                >
+                                    <CameraIcon className="h-5 w-5 mr-2 text-gray-500" />
+                                    {coverPhotoPreview ? 'Change Cover Photo' : 'Upload Cover Photo'}
+                                </button>
+                            </div>
+                            
+                            {/* Profile Picture Section */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Profile Picture</label>
                                 
@@ -179,7 +299,7 @@ const EditProfileMenu = ({ isOpen, onClose, userData, onUpdate }) => {
                                         />
                                         <button 
                                             type="button"
-                                            onClick={handleRemovePhoto}
+                                            onClick={handleRemoveProfilePhoto}
                                             className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow hover:bg-gray-100"
                                         >
                                             <XMarkIcon className="h-5 w-5 text-gray-700" />
@@ -203,19 +323,19 @@ const EditProfileMenu = ({ isOpen, onClose, userData, onUpdate }) => {
                                 
                                 <input
                                     type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleFileChange}
+                                    ref={profileFileInputRef}
+                                    onChange={handleProfilePhotoChange}
                                     className="hidden"
-                                    accept="image/*"
+                                    accept="image/jpeg, image/png, image/gif, image/webp, image/bmp"
                                 />
                                 
                                 <button
                                     type="button"
-                                    onClick={() => fileInputRef.current?.click()}
+                                    onClick={() => profileFileInputRef.current?.click()}
                                     className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                 >
                                     <PhotoIcon className="h-5 w-5 mr-2 text-gray-500" />
-                                    {photoPreview ? 'Change Photo' : 'Upload New Photo'}
+                                    {photoPreview ? 'Change Profile Photo' : 'Upload Profile Photo'}
                                 </button>
                             </div>
                         </form>

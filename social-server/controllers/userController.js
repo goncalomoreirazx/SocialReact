@@ -1,4 +1,57 @@
 import db from '../db/connection.js';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure storage
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function(req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+// File filter to validate uploaded image
+const fileFilter = (req, file, cb) => {
+  // Accept common image file types
+  const allowedMimeTypes = [
+    'image/jpeg', 
+    'image/jpg', 
+    'image/png', 
+    'image/gif',
+    'image/bmp',
+    'image/webp',
+    'image/jfif' 
+  ];
+  
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed!'), false);
+  }
+};
+
+// Export multer instance
+export const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 export const getUserProfile = async (req, res) => {
   try {
@@ -6,7 +59,7 @@ export const getUserProfile = async (req, res) => {
 
     // Get user info
     const [user] = await db.promise().query(`
-      SELECT id, username, email, profile_picture, birth_date, bio 
+      SELECT id, username, email, profile_picture, cover_photo, birth_date, bio 
       FROM users 
       WHERE id = ?
     `, [userId]);
@@ -66,44 +119,97 @@ export const getUserPhotos = async (req, res) => {
   }
 };
 
-// userController.js
+// Updated updateUser function to handle multiple file uploads
 export const updateUser = async (req, res) => {
   try {
     const { bio } = req.body;
-    const profilePicture = req.file;
-    let updateQuery = 'UPDATE users SET bio = ?';
-    let queryParams = [bio];
-
-    if (profilePicture) {
-      updateQuery += ', profile_picture = ?';
-      queryParams.push(profilePicture.filename);
-    }
-    updateQuery += ' WHERE id = ?';
-    queryParams.push(req.params.userId);
-
-    await db.promise().query(updateQuery, queryParams);
-
-    const [updatedUser] = await db.promise().query(
-      'SELECT id, username, email, profile_picture, bio FROM users WHERE id = ?',
-      [req.params.userId]
+    const userId = req.params.userId;
+    
+    console.log("Request files: ", req.files);
+    console.log("Request body: ", req.body);
+    
+    // Get files from the request
+    const profilePicture = req.files && req.files.profilePhoto ? req.files.profilePhoto[0] : null;
+    const coverPhoto = req.files && req.files.coverPhoto ? req.files.coverPhoto[0] : null;
+    
+    // Verify user exists
+    const [existingUser] = await db.promise().query(
+      'SELECT id FROM users WHERE id = ?',
+      [userId]
     );
 
-    if (updatedUser.length === 0) {
+    if (existingUser.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    // Build update query dynamically
+    let updateQuery = 'UPDATE users SET';
+    const queryParams = [];
+    let hasUpdates = false;
+    
+    // Add bio to update if provided
+    if (bio !== undefined) {
+      updateQuery += ' bio = ?';
+      queryParams.push(bio);
+      hasUpdates = true;
+    }
+    
+    // Add profile picture to update if provided
+    if (profilePicture) {
+      if (hasUpdates) {
+        updateQuery += ',';
+      }
+      updateQuery += ' profile_picture = ?';
+      queryParams.push(profilePicture.filename);
+      hasUpdates = true;
+    }
+    
+    // Add cover photo to update if provided
+    if (coverPhoto) {
+      if (hasUpdates) {
+        updateQuery += ',';
+      }
+      updateQuery += ' cover_photo = ?';
+      queryParams.push(coverPhoto.filename);
+      hasUpdates = true;
+    }
+    
+    // Only proceed if there's something to update
+    if (!hasUpdates) {
+      return res.status(400).json({ message: 'No updates provided' });
+    }
+    
+    // Complete the query
+    updateQuery += ' WHERE id = ?';
+    queryParams.push(userId);
+
+    // Execute the update
+    const [result] = await db.promise().query(updateQuery, queryParams);
+    
+    if (result.affectedRows === 0) {
+      return res.status(500).json({ message: 'Failed to update user profile' });
+    }
+
+    // Fetch updated user data
+    const [updatedUser] = await db.promise().query(
+      'SELECT id, username, email, profile_picture, cover_photo, bio FROM users WHERE id = ?',
+      [userId]
+    );
 
     res.json(updatedUser[0]);
   } catch (error) {
     console.error('Error updating user:', error);
-    res.status(500).json({ message: 'Error updating user', error: error.message });
+    res.status(500).json({ 
+      message: 'Error updating user profile', 
+      error: error.message 
+    });
   }
 };
-
 
 export const searchUsers = async (req, res) => {
   try {
     const { searchTerm } = req.query;
-    const userId = req.user.userId; // This is correct
+    const userId = req.user.userId;
 
     const [users] = await db.promise().query(
       `SELECT id, username, profile_picture, bio 
