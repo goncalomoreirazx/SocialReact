@@ -1,14 +1,28 @@
-import React, { useState } from 'react';
-import { HeartIcon, ChatBubbleLeftIcon, ShareIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from 'react';
+import { HeartIcon, ChatBubbleLeftIcon, ShareIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import { formatDistanceToNow } from 'date-fns';
 import { UserCircleIcon } from '@heroicons/react/24/solid';
+import { useAuth } from '../contexts/AuthContext';
+import CommentsList from './post/CommentsList';
+import CommentForm from './post/CommentForm';
 
 const Post = ({ post }) => {
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(post.liked_by_user || post.liked || false);
   const [likesCount, setLikesCount] = useState(post.likes || 0);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [newComment, setNewComment] = useState(null);
+  const [commentsCount, setCommentsCount] = useState(post.comments || 0);
+  const { token, user } = useAuth();
+
+  // Initialize like status from API
+  useEffect(() => {
+    if (token && user) {
+      checkLikeStatus();
+    }
+  }, [post.id, token]);
 
   // Function to get the full image URL
   const getImageUrl = (imagePath) => {
@@ -18,13 +32,66 @@ const Post = ({ post }) => {
       : `http://localhost:5000${imagePath}`;
   };
 
-  const handleLike = () => {
-    if (liked) {
-      setLikesCount(prev => prev - 1);
-    } else {
-      setLikesCount(prev => prev + 1);
+  const checkLikeStatus = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/likes/${post.id}/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLiked(data.liked);
+        setLikesCount(data.likesCount);
+      }
+    } catch (error) {
+      console.error('Error checking like status:', error);
     }
-    setLiked(!liked);
+  };
+
+  const handleLike = async () => {
+    if (!token || !user) {
+      // User must be logged in to like
+      alert('Please log in to like posts');
+      return;
+    }
+
+    try {
+      // Optimistic update
+      setLiked(!liked);
+      setLikesCount(prevCount => liked ? prevCount - 1 : prevCount + 1);
+
+      const response = await fetch(`http://localhost:5000/api/likes/${post.id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to toggle like');
+      }
+
+      const data = await response.json();
+      // Update with actual data from server
+      setLiked(data.liked);
+      setLikesCount(data.likesCount);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      // Revert optimistic update on error
+      setLiked(!liked);
+      setLikesCount(prevCount => liked ? prevCount + 1 : prevCount - 1);
+    }
+  };
+
+  const handleCommentToggle = () => {
+    setShowComments(!showComments);
+  };
+
+  const handleCommentAdded = (comment) => {
+    setNewComment(comment);
+    setCommentsCount(prevCount => prevCount + 1);
   };
 
   const formatTimestamp = (timestamp) => {
@@ -113,15 +180,38 @@ const Post = ({ post }) => {
             )}
             <span className="font-medium text-sm sm:text-base">{likesCount}</span>
           </button>
-          <button className="flex items-center space-x-1 sm:space-x-2 text-gray-500 hover:text-blue-500 transition-colors group">
+          <button 
+            onClick={handleCommentToggle}
+            className={`flex items-center space-x-1 sm:space-x-2 ${
+              showComments ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
+            } transition-colors group`}
+            aria-label="Toggle comments"
+          >
             <ChatBubbleLeftIcon className="h-5 w-5 sm:h-6 sm:w-6 group-hover:scale-110 transition-transform" />
-            <span className="font-medium text-sm sm:text-base">{post.comments || 0}</span>
+            <span className="font-medium text-sm sm:text-base">{commentsCount}</span>
           </button>
         </div>
         <button className="text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-gray-100">
           <ShareIcon className="h-5 w-5" />
         </button>
       </div>
+      
+      {/* Comments Section */}
+      {showComments && (
+        <div className="px-4 sm:px-5 py-4 border-t border-gray-100 bg-gray-50">
+          {/* Comments List */}
+          <CommentsList 
+            postId={post.id} 
+            newComment={newComment}
+          />
+          
+          {/* Comment Form */}
+          <CommentForm 
+            postId={post.id} 
+            onCommentAdded={handleCommentAdded}
+          />
+        </div>
+      )}
     </div>
   );
 };

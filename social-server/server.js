@@ -10,6 +10,8 @@ import userRouter from './routes/userRouter.js';
 import postsRouter from './routes/postsRouter.js';
 import friendRouter from './routes/friendRouter.js';
 import messagesRouter from './routes/messagesRouter.js';
+import likesRouter from './routes/likesRouter.js';
+import commentsRouter from './routes/commentsRouter.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -72,6 +74,8 @@ app.use('/api/users', userRouter);
 app.use('/api/posts', postsRouter);
 app.use('/api/friends', friendRouter);
 app.use('/api/messages', messagesRouter);
+app.use('/api/likes', likesRouter);
+app.use('/api/comments', commentsRouter);
 
 // Socket authentication middleware
 io.use(async (socket, next) => {

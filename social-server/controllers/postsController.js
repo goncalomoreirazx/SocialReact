@@ -46,7 +46,13 @@ export const createPost = async (req, res) => {
 
 export const getPosts = async (req, res) => {
   try {
-    const [posts] = await db.promise().query(`
+    const { userId } = req.user || {}; // Get user ID if authenticated
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+    
+    // Build query with user's like status if authenticated
+    let query = `
       SELECT 
         p.id,
         p.content,
@@ -57,10 +63,31 @@ export const getPosts = async (req, res) => {
         u.profile_picture,
         (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes,
         (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments
+    `;
+    
+    // Add user's like status if authenticated
+    if (userId) {
+      query += `,
+        (SELECT COUNT(*) > 0 FROM likes WHERE post_id = p.id AND user_id = ?) as liked_by_user
+      `;
+    }
+    
+    query += `
       FROM posts p
       JOIN users u ON p.user_id = u.id
       ORDER BY p.created_at DESC
-    `);
+      LIMIT ? OFFSET ?
+    `;
+    
+    // Prepare query parameters
+    const queryParams = userId ? [userId, limit, offset] : [limit, offset];
+    
+    const [posts] = await db.promise().query(query, queryParams);
+    
+    // Get total post count for pagination
+    const [countResult] = await db.promise().query('SELECT COUNT(*) as total FROM posts');
+    const totalPosts = countResult[0].total;
+    const totalPages = Math.ceil(totalPosts / limit);
 
     // Format the posts to include proper image URLs
     const formattedPosts = posts.map(post => ({
@@ -69,10 +96,20 @@ export const getPosts = async (req, res) => {
       // Add /uploads/ prefix to profile pictures
       profile_picture: post.profile_picture ? `/uploads/${post.profile_picture}` : null,
       created_at: post.created_at,
-      username: post.username || 'Anonymous User'
+      username: post.username || 'Anonymous User',
+      liked: post.liked_by_user === 1 // Convert to boolean
     }));
 
-    res.json({ posts: formattedPosts });
+    res.json({ 
+      posts: formattedPosts,
+      pagination: {
+        total: totalPosts,
+        page,
+        limit,
+        totalPages,
+        hasMore: page < totalPages
+      }
+    });
   } catch (error) {
     console.error('Error fetching posts:', error);
     res.status(500).json({ message: 'Error fetching posts', error: error.message });
