@@ -85,7 +85,7 @@ export const MessageNotificationProvider = ({ children }) => {
       console.log('MessageNotification: Notification received', data);
       if (data.receiverId === user.id) {
         console.log('MessageNotification: Incrementing unread count from notification');
-        setUnreadCount(prev => prev + 1 - 1);
+        setUnreadCount(prev => prev + 1 );
       }
     };
     
