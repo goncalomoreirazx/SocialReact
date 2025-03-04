@@ -12,7 +12,7 @@ import CreatePost from './pages/CreatePost';
 import ChatList from './pages/ChatList';
 import ChatRoom from './components/ChatRoom';
 import Register from './pages/Register';
-import FindFriends from './pages/FindFriends';
+import FriendsPage from './pages/FindFriends';
 
 function App() {
   return (
@@ -61,10 +61,10 @@ function App() {
                         } 
                       />
                       <Route 
-                        path="/find-friends" 
+                        path="/friends" 
                         element={
                           <ProtectedRoute>
-                            <FindFriends />
+                            <FriendsPage />
                           </ProtectedRoute>
                         } 
                       />

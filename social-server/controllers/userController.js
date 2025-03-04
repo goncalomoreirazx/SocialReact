@@ -53,6 +53,8 @@ export const upload = multer({
   }
 });
 
+// Update the getUserProfile function in userController.js
+
 export const getUserProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
@@ -68,30 +70,103 @@ export const getUserProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Get follower count
-    const [followers] = await db.promise().query(`
+    // Get friend count (both directions - either as requester or recipient)
+    const [friendsCount] = await db.promise().query(`
       SELECT COUNT(*) as count 
       FROM friends 
-      WHERE friend_id = ?
-    `, [userId]);
+      WHERE (user_id = ? OR friend_id = ?) AND status = 'accepted'
+    `, [userId, userId]);
 
-    // Get following count
-    const [following] = await db.promise().query(`
+    // Get posts count
+    const [postsCount] = await db.promise().query(`
       SELECT COUNT(*) as count 
-      FROM friends 
+      FROM posts 
       WHERE user_id = ?
     `, [userId]);
 
+    // If the requesting user is logged in, check if they are friends
+    let isFriend = false;
+    if (req.user && req.user.userId !== parseInt(userId)) {
+      const [friendship] = await db.promise().query(
+        `SELECT * FROM friends 
+         WHERE ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))
+         AND status = 'accepted'`,
+        [req.user.userId, userId, userId, req.user.userId]
+      );
+      isFriend = friendship.length > 0;
+    }
+
+    // Check if there's a pending friend request (in either direction)
+    let pendingRequest = null;
+    if (req.user && req.user.userId !== parseInt(userId)) {
+      const [outgoingRequest] = await db.promise().query(
+        `SELECT id FROM friends 
+         WHERE user_id = ? AND friend_id = ? AND status = 'pending'`,
+        [req.user.userId, userId]
+      );
+      
+      const [incomingRequest] = await db.promise().query(
+        `SELECT id FROM friends 
+         WHERE user_id = ? AND friend_id = ? AND status = 'pending'`,
+        [userId, req.user.userId]
+      );
+      
+      if (outgoingRequest.length > 0) {
+        pendingRequest = 'outgoing';
+      } else if (incomingRequest.length > 0) {
+        pendingRequest = 'incoming';
+      }
+    }
+
     const userProfile = {
       ...user[0],
-      followers: followers[0].count,
-      following: following[0].count
+      friends_count: friendsCount[0].count,
+      posts_count: postsCount[0].count,
+      is_friend: isFriend,
+      pending_request: pendingRequest
     };
 
     res.json(userProfile);
   } catch (error) {
     console.error('Error fetching user profile:', error);
     res.status(500).json({ message: 'Error fetching user profile' });
+  }
+};
+
+//TESTE AMIGOS NOVOS
+export const getUserFriends = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    
+    // Get all friends (either direction) with accepted status
+    const [friends] = await db.promise().query(`
+      SELECT 
+        u.id, 
+        u.username, 
+        u.profile_picture, 
+        u.bio,
+        f.created_at as friendship_date,
+        CASE 
+          WHEN u.last_active >= NOW() - INTERVAL 1 MINUTE THEN 'online'
+          ELSE 'offline'
+        END as status
+      FROM friends f
+      JOIN users u ON (
+        CASE 
+          WHEN f.user_id = ? THEN f.friend_id
+          WHEN f.friend_id = ? THEN f.user_id 
+        END
+      ) = u.id
+      WHERE (f.user_id = ? OR f.friend_id = ?) 
+        AND f.status = 'accepted'
+        AND u.id != ?
+      ORDER BY u.username
+    `, [userId, userId, userId, userId, userId]);
+    
+    res.json(friends);
+  } catch (error) {
+    console.error('Error fetching user friends:', error);
+    res.status(500).json({ message: 'Error fetching user friends' });
   }
 };
 

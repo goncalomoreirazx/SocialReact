@@ -77,7 +77,7 @@ function Navbar() {
     const baseClasses = isMobile 
       ? "flex items-center gap-3 w-full p-3 rounded-lg hover:bg-blue-50 transition-colors"
       : "nav-link text-gray-600 relative";
-
+  
     const baseIconClasses = isMobile ? "h-6 w-6 text-blue-500" : "h-6 w-6";
     const textClasses = isMobile ? "text-gray-700" : "hidden md:block";
     
@@ -90,7 +90,7 @@ function Navbar() {
         
         {user ? (
           <>
-            <Link to="/find-friends" className={baseClasses} onClick={() => setIsMobileMenuOpen(false)}>
+            <Link to="/friends" className={baseClasses} onClick={() => setIsMobileMenuOpen(false)}>
               <div className="relative">
                 <UsersIcon className={baseIconClasses} />
                 {friendRequests > 0 && (
@@ -99,7 +99,7 @@ function Navbar() {
                   </span>
                 )}
               </div>
-              <span className={textClasses}>Find Friends</span>
+              <span className={textClasses}>Friends</span>
               {friendRequests > 0 && isMobile && (
                 <span className="ml-auto bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
                   {friendRequests} new
