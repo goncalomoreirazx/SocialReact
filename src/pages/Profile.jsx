@@ -258,17 +258,27 @@ const Profile = () => {
         {/* Profile Card */}
         <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
           {/* Cover Photo Area - You could add a proper cover photo here */}
-          <div className="h-32 sm:h-48 bg-gradient-to-r from-blue-400 to-purple-500 relative">
+          <div className="h-32 sm:h-48 relative bg-gradient-to-r from-blue-400 to-purple-500 overflow-hidden">
+            {user.cover_photo && (
+              <img
+                src={`http://localhost:5000/uploads/${user.cover_photo}`}
+                alt="Cover"
+                className="w-full h-full object-cover absolute inset-0"
+                onError={(e) => {
+                  console.error("Error loading cover photo:", e);
+                  e.target.style.display = 'none'; // Hide broken image
+                }}
+              />
+            )}
             {isOwnProfile && (
               <button
                 onClick={() => setIsSideMenuOpen(true)}
-                className="absolute top-4 right-4 bg-white/70 backdrop-blur-sm text-gray-700 hover:text-gray-900 p-2 rounded-full hover:bg-white/90 transition-all"
+                className="absolute top-4 right-4 bg-white/70 backdrop-blur-sm text-gray-700 hover:text-gray-900 p-2 rounded-full hover:bg-white/90 transition-all z-10"
               >
                 <Cog6ToothIcon className="h-5 w-5" />
               </button>
             )}
           </div>
-          
           <div className="px-4 sm:px-6 pb-6 pt-0 relative">
             {/* Profile Picture - Positioned to overlap the cover photo */}
             <div className="relative -mt-16 mb-4 flex justify-center sm:justify-start">
