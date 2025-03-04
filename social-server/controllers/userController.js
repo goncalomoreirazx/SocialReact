@@ -97,13 +97,40 @@ export const getUserProfile = async (req, res) => {
 
 export const getUserPosts = async (req, res) => {
   try {
-    const [posts] = await db.promise().query(
-      'SELECT * FROM posts WHERE user_id = ? ORDER BY created_at DESC',
-      [req.params.userId]
-    );
-    res.json(posts);
+    const [posts] = await db.promise().query(`
+      SELECT 
+        p.id,
+        p.content,
+        p.image_url,
+        p.created_at,
+        p.user_id,
+        u.username,
+        u.profile_picture,
+        (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as likes,
+        (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.user_id = ?
+      ORDER BY p.created_at DESC
+    `, [req.params.userId]);
+
+    // Format the posts to include proper image URLs
+    const formattedPosts = posts.map(post => ({
+      ...post,
+      image: post.image_url,
+      // Add /uploads/ prefix to profile pictures if needed
+      profile_picture: post.profile_picture ? `/uploads/${post.profile_picture}` : null,
+      created_at: post.created_at,
+      username: post.username || 'Anonymous User'
+    }));
+
+    res.json(formattedPosts);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error fetching user posts:', error);
+    res.status(500).json({ 
+      message: 'Error fetching user posts', 
+      error: error.message 
+    });
   }
 };
 
