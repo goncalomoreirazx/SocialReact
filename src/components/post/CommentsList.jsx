@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { TrashIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
+import CommentItem from './CommentItem';
 
 const CommentsList = ({ postId, newComment }) => {
   const [comments, setComments] = useState([]);
@@ -34,14 +33,15 @@ const CommentsList = ({ postId, newComment }) => {
       }
       
       const data = await response.json();
+      console.log("Fetched comments:", data);
       
       if (page === 1) {
-        setComments(data.comments);
+        setComments(data.comments || []);
       } else {
-        setComments(prevComments => [...prevComments, ...data.comments]);
+        setComments(prevComments => [...prevComments, ...(data.comments || [])]);
       }
       
-      setHasMore(data.pagination.hasMore);
+      setHasMore(data.pagination?.hasMore || false);
     } catch (error) {
       console.error('Error fetching comments:', error);
       setError('Failed to load comments');
@@ -72,14 +72,6 @@ const CommentsList = ({ postId, newComment }) => {
     } catch (error) {
       console.error('Error deleting comment:', error);
       alert('Failed to delete comment');
-    }
-  };
-
-  const formatTimeAgo = (timestamp) => {
-    try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
-    } catch (error) {
-      return 'some time ago';
     }
   };
 
@@ -117,44 +109,11 @@ const CommentsList = ({ postId, newComment }) => {
   return (
     <div className="space-y-4">
       {comments.map(comment => (
-        <div key={comment.id} className="flex space-x-3 animate-fade-in">
-          {/* User avatar */}
-          <div className="flex-shrink-0">
-            <img 
-              src={comment.profile_picture ? `http://localhost:5000/uploads/${comment.profile_picture}` : '/default-avatar.png'} 
-              alt={comment.username}
-              className="w-8 h-8 rounded-full object-cover"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = '/default-avatar.png';
-              }}
-            />
-          </div>
-          
-          {/* Comment content */}
-          <div className="flex-1 min-w-0">
-            <div className="bg-gray-100 rounded-lg p-3 relative">
-              <div className="flex justify-between items-start">
-                <p className="font-medium text-gray-900 text-sm">{comment.username}</p>
-                
-                {/* Delete button (visible only to comment author or post owner) */}
-                {user && (user.id === comment.user_id) && (
-                  <button 
-                    onClick={() => handleDeleteComment(comment.id)}
-                    className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full"
-                    aria-label="Delete comment"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              
-              <p className="text-gray-800 mt-1 text-sm whitespace-pre-line break-words">{comment.content}</p>
-              
-              <p className="text-xs text-gray-500 mt-1">{formatTimeAgo(comment.created_at)}</p>
-            </div>
-          </div>
-        </div>
+        <CommentItem 
+          key={comment.id} 
+          comment={comment} 
+          onDelete={handleDeleteComment} 
+        />
       ))}
       
       {/* Load more button */}
