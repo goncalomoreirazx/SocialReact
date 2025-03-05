@@ -61,6 +61,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads/covers', express.static(path.join(__dirname, 'uploads/covers')));
 app.use('/uploads/messages', express.static(path.join(__dirname, 'uploads/messages')));
 app.use('/uploads/posts', express.static(path.join(__dirname, 'uploads/posts')));
+
 // Connected users map
 const connectedUsers = new Map();
 
@@ -193,7 +194,7 @@ io.on('connection', (socket) => {
         // Send the message content for chat display
         io.to(receiverSocketId).emit('receive_message', messageToSend);
         
-        // IMPORTANT: Send a separate notification event 
+        // IMPORTANT: Send notification event only once
         console.log('Emitting notification event for unread message');
         io.to(receiverSocketId).emit('new_message', {
           senderId: messageToSend.sender_id,
@@ -204,7 +205,6 @@ io.on('connection', (socket) => {
         console.log(`Receiver ${receiverId} is not online, message will be shown as unread on their next login`);
       }
       
-
       // Send back to sender for confirmation (using socket.emit)
       console.log('Sending confirmation back to sender');
       socket.emit('receive_message', messageToSend);
@@ -212,16 +212,8 @@ io.on('connection', (socket) => {
       // Send to everyone EXCEPT the sender (this way receiver gets it once)
       console.log('Broadcasting message to all except sender');
       socket.broadcast.emit('receive_message', messageToSend);
-
-      // Notification is still sent directly only to the receiver
-      if (receiverSocketId) {
-        console.log('Emitting notification event for unread message');
-        io.to(receiverSocketId).emit('new_message', {
-          senderId: messageToSend.sender_id,
-          receiverId: messageToSend.receiver_id,
-          messageId: messageToSend.id
-        });
-      }
+      
+      // Removed the duplicate notification here
     } catch (error) {
       console.error('Error handling message:', error);
       socket.emit('message_error', { error: 'Failed to send message' });

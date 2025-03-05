@@ -71,29 +71,19 @@ export const MessageNotificationProvider = ({ children }) => {
     
     console.log('MessageNotification: Setting up message listeners');
     
-    // Listen for new messages
-    const handleMessage = (message) => {
-      console.log('MessageNotification: Message received', message);
-      if (message.receiver_id === user.id && message.sender_id !== user.id) {
-        console.log('MessageNotification: Incrementing unread count');
-        setUnreadCount(prev => prev + 1);
-      }
-    };
-    
-    // Listen for notification events
+    // IMPORTANT: Only handle notifications through the 'new_message' event
+    // Removed the duplicate handler for 'receive_message'
     const handleNotification = (data) => {
       console.log('MessageNotification: Notification received', data);
       if (data.receiverId === user.id) {
         console.log('MessageNotification: Incrementing unread count from notification');
-        setUnreadCount(prev => prev + 1 );
+        setUnreadCount(prev => prev + 1);
       }
     };
     
-    socket.on('receive_message', handleMessage);
     socket.on('new_message', handleNotification);
     
     return () => {
-      socket.off('receive_message', handleMessage);
       socket.off('new_message', handleNotification);
     };
   }, [socket, user]);
