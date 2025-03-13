@@ -95,7 +95,7 @@ const CommentRepliesList = ({ commentId }) => {
 
   if (loading && replies.length === 0) {
     return (
-      <div className="py-2 text-center">
+      <div className="py-3 text-center">
         <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
         <p className="text-gray-500 text-xs mt-1">Loading replies...</p>
       </div>
@@ -104,7 +104,7 @@ const CommentRepliesList = ({ commentId }) => {
 
   if (error && replies.length === 0) {
     return (
-      <div className="py-2 text-center text-red-500 text-xs">
+      <div className="py-2 text-center text-red-500 text-xs bg-red-50 rounded-lg p-2">
         {error}
       </div>
     );
@@ -112,7 +112,7 @@ const CommentRepliesList = ({ commentId }) => {
 
   if (replies.length === 0) {
     return (
-      <div className="py-2 text-center text-gray-500 text-xs">
+      <div className="py-2 text-center text-gray-500 text-xs bg-gray-50 rounded-lg p-2">
         No replies yet
       </div>
     );
@@ -121,32 +121,36 @@ const CommentRepliesList = ({ commentId }) => {
   return (
     <div className="space-y-3">
       {replies.map((reply) => (
-        <div key={reply.id} className="space-y-2">
+        <div key={reply.id} className="space-y-2 animate-fade-in">
           <div className="flex space-x-2">
             {/* User avatar */}
             <div className="flex-shrink-0">
-              <img 
-                src={reply.profile_picture ? `http://localhost:5000/uploads/${reply.profile_picture}` : '/default-avatar.png'} 
-                alt={reply.username}
-                className="w-6 h-6 rounded-full object-cover"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = '/default-avatar.png';
-                }}
-              />
+              <div className="avatar w-6 h-6">
+                <div className="avatar-inner">
+                  <img 
+                    src={reply.profile_picture ? `http://localhost:5000/uploads/${reply.profile_picture}` : '/default-avatar.png'} 
+                    alt={reply.username}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/default-avatar.png';
+                    }}
+                  />
+                </div>
+              </div>
             </div>
             
             {/* Reply content */}
             <div className="flex-1 min-w-0">
-              <div className="bg-gray-100 rounded-lg p-2 relative group">
+              <div className="bg-gray-100 rounded-lg p-2 relative group hover:shadow-sm transition-all duration-200">
                 <div className="flex justify-between items-start">
-                  <p className="font-medium text-gray-900 text-xs">{reply.username}</p>
+                  <p className="font-medium text-gray-900 text-xs hover:text-blue-600 transition-colors">{reply.username}</p>
                   
                   {/* Delete button (visible only to reply author) */}
                   {user && (user.id === reply.user_id) && (
                     <button 
                       onClick={() => handleDeleteReply(reply.id)}
-                      className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100"
+                      className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-50"
                       aria-label="Delete reply"
                     >
                       <TrashIcon className="h-3 w-3" />
@@ -156,7 +160,7 @@ const CommentRepliesList = ({ commentId }) => {
                 
                 {/* If this is a reply to another reply, show who they're replying to */}
                 {reply.parent_reply_id && (
-                  <div className="text-gray-500 text-xs mb-1">
+                  <div className="text-gray-500 text-xs mb-1 bg-gray-200 bg-opacity-50 px-1.5 py-0.5 rounded inline-block">
                     Replying to @{reply.parent_username || "someone"}
                   </div>
                 )}
@@ -177,7 +181,7 @@ const CommentRepliesList = ({ commentId }) => {
                     {/* Reply button */}
                     <button 
                       onClick={() => setReplyingTo(reply.id === replyingTo ? null : reply.id)}
-                      className="text-[10px] text-gray-500 hover:text-blue-500 flex items-center gap-0.5"
+                      className="text-[10px] text-gray-500 hover:text-blue-500 flex items-center gap-0.5 transition-colors px-1.5 py-0.5 rounded-full hover:bg-blue-50"
                     >
                       <ArrowUturnLeftIcon className="h-2.5 w-2.5" />
                       Reply
@@ -186,7 +190,7 @@ const CommentRepliesList = ({ commentId }) => {
                     {/* React button */}
                     <button 
                       onClick={() => toggleReactionPicker(reply.id)}
-                      className="text-[10px] text-gray-500 hover:text-blue-500 flex items-center gap-0.5"
+                      className="text-[10px] text-gray-500 hover:text-blue-500 flex items-center gap-0.5 transition-colors px-1.5 py-0.5 rounded-full hover:bg-blue-50"
                     >
                       <FaceSmileIcon className="h-2.5 w-2.5" />
                       React
@@ -199,7 +203,7 @@ const CommentRepliesList = ({ commentId }) => {
           
           {/* Nested reply form */}
           {replyingTo === reply.id && (
-            <div className="ml-8">
+            <div className="ml-8 animate-fade-scale origin-top">
               <NestedReplyForm 
                 replyId={reply.id}
                 parentCommentId={commentId}
@@ -213,11 +217,11 @@ const CommentRepliesList = ({ commentId }) => {
       
       {/* Load more button */}
       {hasMore && (
-        <div className="text-center">
+        <div className="text-center mt-2">
           <button 
             onClick={() => setPage(prevPage => prevPage + 1)}
             disabled={loading}
-            className="text-blue-500 hover:text-blue-700 text-xs font-medium disabled:text-gray-400"
+            className="text-blue-500 hover:text-blue-700 text-xs font-medium disabled:text-gray-400 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-full transition-colors"
           >
             {loading ? 'Loading...' : 'Load more replies'}
           </button>

@@ -8,11 +8,11 @@
   }
   
   .card {
-    @apply bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200;
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200;
   }
 
   .nav-link {
-    @apply flex items-center gap-1 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200;
+    @apply flex items-center gap-1 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200;
   }
 
   .avatar {
@@ -20,7 +20,7 @@
   }
 
   .avatar-inner {
-    @apply rounded-full bg-white p-0.5;
+    @apply rounded-full bg-white dark:bg-gray-800 p-0.5;
   }
 
   /* Message bubbles */
@@ -33,7 +33,7 @@
   }
 
   .message-bubble-received {
-    @apply bg-gray-100 text-gray-900 rounded-bl-none;
+    @apply bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-bl-none;
   }
 }
 
@@ -53,6 +53,10 @@
   scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
 
+.dark .overflow-y-auto {
+  scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
+}
+
 .overflow-y-auto::-webkit-scrollbar {
   width: 6px;
 }
@@ -66,8 +70,16 @@
   border-radius: 3px;
 }
 
+.dark .overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(75, 85, 99, 0.5);
+}
+
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background-color: rgba(156, 163, 175, 0.7);
+}
+
+.dark .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(75, 85, 99, 0.7);
 }
 
 @keyframes fadeScale {

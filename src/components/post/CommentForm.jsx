@@ -107,7 +107,7 @@ const CommentForm = ({ postId, onCommentAdded }) => {
 
   if (!user || !token) {
     return (
-      <div className="text-center py-3 text-gray-500 text-sm border-t mt-4">
+      <div className="text-center py-3 text-gray-500 text-sm border-t mt-4 rounded-lg bg-gray-50 p-4">
         Please log in to add a comment
       </div>
     );
@@ -118,15 +118,19 @@ const CommentForm = ({ postId, onCommentAdded }) => {
       <div className="flex items-start space-x-3">
         {/* User avatar */}
         <div className="flex-shrink-0">
-          <img 
-            src={user.profile_picture ? `http://localhost:5000/uploads/${user.profile_picture}` : '/default-avatar.png'} 
-            alt={user.username}
-            className="w-8 h-8 rounded-full object-cover"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = '/default-avatar.png';
-            }}
-          />
+          <div className="avatar w-9 h-9">
+            <div className="avatar-inner">
+              <img 
+                src={user.profile_picture ? `http://localhost:5000/uploads/${user.profile_picture}` : '/default-avatar.png'} 
+                alt={user.username}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = '/default-avatar.png';
+                }}
+              />
+            </div>
+          </div>
         </div>
         
         {/* Comment input */}
@@ -136,7 +140,7 @@ const CommentForm = ({ postId, onCommentAdded }) => {
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="Write a comment..."
-            className="w-full p-2 bg-gray-100 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200 pr-10 min-h-[40px] text-sm"
+            className="w-full p-2.5 bg-gray-100 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all duration-200 pr-10 min-h-[40px] text-sm shadow-sm hover:shadow-md border border-gray-200"
             rows="1"
           />
           
@@ -145,7 +149,7 @@ const CommentForm = ({ postId, onCommentAdded }) => {
             type="button"
             data-emoji-button="true"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="absolute right-2 bottom-2 text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full"
+            className="absolute right-2 bottom-2 text-gray-500 hover:text-blue-500 transition-colors p-1.5 rounded-full hover:bg-blue-50"
             aria-label="Add emoji"
           >
             <FaceSmileIcon className="h-5 w-5" />
@@ -174,7 +178,7 @@ const CommentForm = ({ postId, onCommentAdded }) => {
         <button
           type="submit"
           disabled={!comment.trim() || loading}
-          className="flex-shrink-0 mt-1 p-2 text-blue-500 hover:text-blue-700 disabled:text-gray-400 transition-colors"
+          className="flex-shrink-0 mt-1 p-2 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-500 disabled:text-gray-400 transition-colors disabled:bg-gray-100"
           aria-label="Send comment"
         >
           {loading ? (

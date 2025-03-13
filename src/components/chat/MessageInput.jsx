@@ -209,10 +209,10 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
   };
 
   return (
-    <div className="p-2 sm:p-4 border-t">
+    <div className="p-2 sm:p-4 border-t border-gray-200 dark:border-gray-700">
       {/* Preview of selected image */}
       {imagePreview && (
-        <div className="mb-3 relative rounded-lg overflow-hidden border border-gray-200 inline-flex bg-gray-50">
+        <div className="mb-3 relative rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 inline-flex bg-gray-50 dark:bg-gray-800">
           <img 
             src={imagePreview} 
             alt="Selected" 
@@ -241,7 +241,7 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
         />
 
         {/* Message input area */}
-        <div className="flex-1 relative flex items-center bg-white border border-gray-200 rounded-full shadow-sm">
+        <div className="flex-1 relative flex items-center bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full shadow-sm">
           <textarea
             ref={textareaRef}
             value={message}
@@ -252,7 +252,7 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
             }}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
-            className="flex-1 py-2 px-3 sm:py-2.5 sm:px-4 rounded-full focus:outline-none resize-none overflow-y-auto min-h-[40px] max-h-32 text-sm sm:text-base"
+            className="flex-1 py-2 px-3 sm:py-2.5 sm:px-4 rounded-full focus:outline-none resize-none overflow-y-auto min-h-[40px] max-h-32 text-sm sm:text-base bg-transparent text-gray-900 dark:text-gray-100"
             rows="1"
             style={{ lineHeight: '1.4' }}
           />
@@ -264,7 +264,7 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
               type="button"
               data-emoji-button="true"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-1.5 sm:p-2 text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
               aria-label="Add emoji"
             >
               <FaceSmileIcon className="h-5 w-5" />
@@ -274,7 +274,7 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-1.5 sm:p-2 text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
               aria-label="Upload image"
             >
               <Image className="h-5 w-5" />
@@ -295,6 +295,7 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
                 searchDisabled={window.innerWidth < 640}
                 skinTonesDisabled={window.innerWidth < 640}
                 lazyLoadEmojis={true}
+                theme="auto" // This will automatically use light/dark based on system settings
               />
             </div>
           )}
@@ -304,7 +305,7 @@ function MessageInput({ onSubmit, friendId, replyingTo }) {
         <button
           type="submit"
           disabled={(!message.trim() && !selectedImage) || isUploading}
-          className="p-2 sm:p-3 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center justify-center"
+          className="p-2 sm:p-3 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:bg-blue-300 dark:disabled:bg-blue-800 disabled:cursor-not-allowed flex items-center justify-center"
           aria-label="Send message"
         >
           {isUploading ? (

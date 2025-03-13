@@ -135,15 +135,14 @@ const SimplifiedCommentReactions = ({ commentId, showPicker, onClose }) => {
           {reactions.map((reaction) => (
             <button
               key={reaction.reaction_type}
-              className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs ${
-                userReaction === reaction.reaction_type
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`inline-flex items-center py-0.5 px-2 rounded-full text-xs font-medium transition-all 
+                ${userReaction === reaction.reaction_type
+                  ? 'bg-blue-100 text-blue-700 shadow-sm hover:bg-blue-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               onClick={() => handleAddReaction({ name: reaction.reaction_type, emoji: getEmojiFromType(reaction.reaction_type) })}
               disabled={!isAuthenticated}
             >
-              <span className="mr-1">{getEmojiFromType(reaction.reaction_type)}</span>
+              <span className="mr-1 text-base">{getEmojiFromType(reaction.reaction_type)}</span>
               <span>{reaction.count}</span>
             </button>
           ))}
@@ -154,14 +153,14 @@ const SimplifiedCommentReactions = ({ commentId, showPicker, onClose }) => {
       {showPicker && isAuthenticated && (
         <div 
           ref={pickerRef}
-          className="absolute z-10 bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex mt-1 top-6"
+          className="absolute z-10 bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex mt-1 top-6 animate-fade-scale origin-top"
         >
           {COMMON_REACTIONS.map((reaction) => (
             <button
               key={reaction.name}
-              className={`w-8 h-8 flex items-center justify-center text-xl hover:bg-gray-100 rounded-full transition-transform hover:scale-125 ${
-                userReaction === reaction.name ? 'bg-blue-100' : ''
-              }`}
+              className={`w-9 h-9 flex items-center justify-center text-xl hover:bg-gray-100 rounded-full transition-all duration-200 
+                hover:scale-110 hover:shadow-sm
+                ${userReaction === reaction.name ? 'bg-blue-100 text-blue-600' : 'text-gray-700'}`}
               onClick={() => handleAddReaction(reaction)}
             >
               {reaction.emoji}

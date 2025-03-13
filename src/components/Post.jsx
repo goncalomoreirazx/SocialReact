@@ -103,10 +103,10 @@ const Post = ({ post }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
       {/* Post Header */}
       <div className="p-4 sm:p-5 flex items-center">
-        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center border border-gray-100">
+        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center border border-gray-100 dark:border-gray-600">
           {post.profile_picture ? (
             <img
               src={getImageUrl(post.profile_picture)}
@@ -118,14 +118,14 @@ const Post = ({ post }) => {
               }}
             />
           ) : (
-            <UserCircleIcon className="w-full h-full text-gray-400" />
+            <UserCircleIcon className="w-full h-full text-gray-400 dark:text-gray-500" />
           )}
         </div>
         <div className="ml-3 flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 hover:text-blue-600 cursor-pointer transition-colors truncate">
+          <p className="font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors truncate">
             {post.username || 'Anonymous User'}
           </p>
-          <p className="text-xs sm:text-sm text-gray-500">
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
             {formatTimestamp(post.created_at || post.timestamp)}
           </p>
         </div>
@@ -133,7 +133,7 @@ const Post = ({ post }) => {
       
       {/* Post Content */}
       <div className="px-4 sm:px-5 pb-3">
-        <p className="text-gray-800 leading-relaxed text-sm sm:text-base whitespace-pre-line">
+        <p className="text-gray-800 dark:text-gray-200 leading-relaxed text-sm sm:text-base whitespace-pre-line">
           {post.content}
         </p>
       </div>
@@ -142,14 +142,14 @@ const Post = ({ post }) => {
       {post.image && (
         <div className="relative mb-2">
           {!imageLoaded && !imageError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-              <div className="animate-pulse w-8 h-8 rounded-full bg-gray-200"></div>
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+              <div className="animate-pulse w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600"></div>
             </div>
           )}
           <img
             src={getImageUrl(post.image)}
             alt="Post content"
-            className={`w-full h-auto max-h-[500px] object-contain bg-gray-50 transition-all duration-300 ${
+            className={`w-full h-auto max-h-[500px] object-contain bg-gray-50 dark:bg-gray-900 transition-all duration-300 ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             onLoad={() => setImageLoaded(true)}
@@ -164,12 +164,12 @@ const Post = ({ post }) => {
       )}
       
       {/* Post Actions */}
-      <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-t border-gray-100">
+      <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-t border-gray-100 dark:border-gray-700">
         <div className="flex items-center space-x-4 sm:space-x-6">
           <button 
             onClick={handleLike}
             className={`flex items-center space-x-1 sm:space-x-2 ${
-              liked ? 'text-pink-500' : 'text-gray-500 hover:text-pink-500'
+              liked ? 'text-pink-500 dark:text-pink-400' : 'text-gray-500 dark:text-gray-400 hover:text-pink-500 dark:hover:text-pink-400'
             } transition-colors group`}
             aria-label={liked ? "Unlike post" : "Like post"}
           >
@@ -183,7 +183,7 @@ const Post = ({ post }) => {
           <button 
             onClick={handleCommentToggle}
             className={`flex items-center space-x-1 sm:space-x-2 ${
-              showComments ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
+              showComments ? 'text-blue-500 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400'
             } transition-colors group`}
             aria-label="Toggle comments"
           >
@@ -191,14 +191,14 @@ const Post = ({ post }) => {
             <span className="font-medium text-sm sm:text-base">{commentsCount}</span>
           </button>
         </div>
-        <button className="text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-gray-100">
+        <button className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
           <ShareIcon className="h-5 w-5" />
         </button>
       </div>
       
       {/* Comments Section */}
       {showComments && (
-        <div className="px-4 sm:px-5 py-4 border-t border-gray-100 bg-gray-50">
+        <div className="px-4 sm:px-5 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
           {/* Comments List */}
           <CommentsList 
             postId={post.id} 

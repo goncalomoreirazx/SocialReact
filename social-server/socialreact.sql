@@ -61,16 +61,22 @@ CREATE TABLE IF NOT EXISTS `comment_replies` (
   `user_id` int NOT NULL,
   `content` text NOT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `parent_reply_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `comment_id` (`comment_id`),
   KEY `user_id` (`user_id`),
+  KEY `comment_replies_ibfk_3` (`parent_reply_id`),
   CONSTRAINT `comment_replies_ibfk_1` FOREIGN KEY (`comment_id`) REFERENCES `comments` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `comment_replies_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  CONSTRAINT `comment_replies_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `comment_replies_ibfk_3` FOREIGN KEY (`parent_reply_id`) REFERENCES `comment_replies` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- A despejar dados para tabela socialreact.comment_replies: ~2 rows (aproximadamente)
-INSERT INTO `comment_replies` (`id`, `comment_id`, `user_id`, `content`, `created_at`) VALUES
-	(1, 5, 22, 'Adiciona aí para farmar uns bosses.', '2025-03-05 15:23:26');
+-- A despejar dados para tabela socialreact.comment_replies: ~0 rows (aproximadamente)
+INSERT INTO `comment_replies` (`id`, `comment_id`, `user_id`, `content`, `created_at`, `parent_reply_id`) VALUES
+	(1, 5, 22, 'Adiciona aí para farmar uns bosses.', '2025-03-05 15:23:26', NULL),
+	(4, 5, 2, 'ol', '2025-03-05 16:00:03', 1),
+	(5, 5, 22, 'allo estas ocupada', '2025-03-05 16:02:31', 1),
+	(6, 5, 22, 'oh louco', '2025-03-05 16:02:55', 4);
 
 -- A despejar estrutura para tabela socialreact.friends
 CREATE TABLE IF NOT EXISTS `friends` (
@@ -138,7 +144,7 @@ CREATE TABLE IF NOT EXISTS `messages` (
   CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`receiver_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `messages_ibfk_3` FOREIGN KEY (`reply_to_id`) REFERENCES `messages` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=250 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=252 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- A despejar dados para tabela socialreact.messages: ~244 rows (aproximadamente)
 INSERT INTO `messages` (`id`, `sender_id`, `receiver_id`, `content`, `sent_at`, `is_read`, `reply_to_id`, `image_url`) VALUES
@@ -390,7 +396,9 @@ INSERT INTO `messages` (`id`, `sender_id`, `receiver_id`, `content`, `sent_at`, 
 	(246, 2, 22, 'Siga, estou no server 1', '2025-03-05 14:34:52', 1, NULL, '/uploads/messages/message-1741185292066-356678576.jpg'),
 	(247, 2, 22, 'ate ja', '2025-03-05 14:35:12', 1, NULL, NULL),
 	(248, 22, 2, 'www', '2025-03-05 14:57:04', 1, NULL, NULL),
-	(249, 2, 22, 'qqq', '2025-03-05 14:57:08', 0, NULL, NULL);
+	(249, 2, 22, 'qqq', '2025-03-05 14:57:08', 1, NULL, NULL),
+	(250, 2, 22, 'oh louco', '2025-03-05 16:05:37', 1, NULL, NULL),
+	(251, 22, 2, 'mekielas?', '2025-03-05 16:05:48', 1, NULL, NULL);
 
 -- A despejar estrutura para tabela socialreact.posts
 CREATE TABLE IF NOT EXISTS `posts` (
@@ -412,6 +420,25 @@ INSERT INTO `posts` (`id`, `user_id`, `content`, `image_url`, `created_at`) VALU
 	(5, 7, 'Cidade Bonita, só não vou viver para o Porto pq não tenho dinheiro.\r\n#Pobre', '/uploads/posts/post-1740651009544-76050430.jpg', '2025-02-27 10:10:09'),
 	(6, 22, 'Hj consegui finalmente subir de nivel.\r\n#Florensia#NoP2W', '/uploads/posts/post-1741184981002-542686444.jpg', '2025-03-05 14:29:41');
 
+-- A despejar estrutura para tabela socialreact.reply_reactions
+CREATE TABLE IF NOT EXISTS `reply_reactions` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `reply_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `reaction_type` varchar(20) NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_reply` (`user_id`,`reply_id`),
+  KEY `reply_id` (`reply_id`),
+  CONSTRAINT `reply_reactions_ibfk_1` FOREIGN KEY (`reply_id`) REFERENCES `comment_replies` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `reply_reactions_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- A despejar dados para tabela socialreact.reply_reactions: ~0 rows (aproximadamente)
+INSERT INTO `reply_reactions` (`id`, `reply_id`, `user_id`, `reaction_type`, `created_at`) VALUES
+	(1, 1, 2, 'heart', '2025-03-05 16:00:31'),
+	(2, 4, 22, 'angry', '2025-03-05 16:01:46');
+
 -- A despejar estrutura para tabela socialreact.users
 CREATE TABLE IF NOT EXISTS `users` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -431,7 +458,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 -- A despejar dados para tabela socialreact.users: ~17 rows (aproximadamente)
 INSERT INTO `users` (`id`, `email`, `username`, `password`, `profile_picture`, `cover_photo`, `birth_date`, `created_at`, `bio`, `last_active`) VALUES
-	(2, 'goncalomoreira373@gmail.com', 'SlayerX', '$2b$10$ACW/Nr02B1a13Z.cyCRj5uDLzgv7JOlRCDw/AzB9DzQOClcrdzqs2', 'photo-1739285459123-533357550.JPG', 'coverPhoto-1741018884667-559383024.jpg', '1999-10-05', '2024-12-26 18:45:51', 'Sou lindo #CR7 éué 227\r\n', '2025-03-05 15:40:30'),
+	(2, 'goncalomoreira373@gmail.com', 'SlayerX', '$2b$10$ACW/Nr02B1a13Z.cyCRj5uDLzgv7JOlRCDw/AzB9DzQOClcrdzqs2', 'photo-1739285459123-533357550.JPG', 'coverPhoto-1741018884667-559383024.jpg', '1999-10-05', '2024-12-26 18:45:51', 'Sou lindo #CR7 éué 227\r\n', '2025-03-05 16:05:53'),
 	(3, 'slayerxd998@gmail.com', 'Rhakeid', '$2b$10$t4FRpiyrJqzzb2pahByNUelGDDu3787SjLeQ8APVHk.tn0zNCu1XO', 'profilePicture-1735242657189-85347727.jpg', NULL, '1999-10-10', '2024-12-26 19:50:57', NULL, NULL),
 	(4, 'ragusen@gmail.com', 'Ragusen', 'Kunalo9990', NULL, NULL, '2025-02-09', '2025-02-09 16:30:05', NULL, NULL),
 	(6, 'asuk@gmail.com', 'Asuk', '$2b$10$E/xNPKOv2N8QOdMOZnAXPuyA7zb9vI6AGM8XMFleAF/E2SzphvKJS', 'profilePicture-1739124749584-142862384.jpg', NULL, '1998-11-04', '2025-02-09 18:12:29', NULL, '2025-02-26 14:01:56'),
@@ -449,7 +476,7 @@ INSERT INTO `users` (`id`, `email`, `username`, `password`, `profile_picture`, `
 	(19, 'xLyssaRR@gmail.com', 'xLyssa', '$2b$10$d6Hbh/eSa8qhoFFscdGrl.q4BusyR8tR0uJMy1fjK.IoMADxh3jru', 'profilePicture-1740595507010-625718086.jpg', NULL, '1999-12-12', '2025-02-26 18:45:07', NULL, '2025-02-27 10:03:42'),
 	(20, 'teste30@gmail.com', 'teste30', '$2b$10$RYuXqsQXdqhUtKhM/MEhPu5BbO0yS6jge6ezGKJikAmKuAjwgbR7y', 'profilePhoto-1741017098574-84562763.jpg', 'coverPhoto-1741017098576-906206995.jpg', '1999-12-05', '2025-03-03 15:18:09', 'eeeew22', '2025-03-04 14:00:01'),
 	(21, 'JackRS@gmail.com', 'JackRS', '$2b$10$PLMymS5mY3hbcy5kns.wROoXvAEci0DSce4ZAqO1Ai.O7Gsr28kbu', 'profilePhoto-1741107203210-873525564.jpg', 'coverPhoto-1741107203255-346909387.jpg', '1999-12-12', '2025-03-04 16:47:20', 'Anda cá menino!', '2025-03-05 14:26:28'),
-	(22, 'Bony@gmail.com', 'xBonyX', '$2b$10$xFiLB2KNjIIEPS4Rc1Ndwe.I50nwJm98QETwzfwzjbNlmkcKlFxxK', 'profilePicture-1741184835275-262710755.jpg', 'coverPhoto-1741184902796-65444630.jpg', '1999-12-12', '2025-03-05 14:27:15', 'Teste 05/03\r\nAs 14:28', '2025-03-05 15:39:59');
+	(22, 'Bony@gmail.com', 'xBonyX', '$2b$10$xFiLB2KNjIIEPS4Rc1Ndwe.I50nwJm98QETwzfwzjbNlmkcKlFxxK', 'profilePicture-1741184835275-262710755.jpg', 'coverPhoto-1741184902796-65444630.jpg', '1999-12-12', '2025-03-05 14:27:15', 'Teste 05/03\r\nAs 14:28', '2025-03-05 16:05:54');
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;

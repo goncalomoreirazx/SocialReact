@@ -136,16 +136,16 @@ const ReplyReactions = ({ replyId, showPicker, onClose }) => {
           {reactions.map((reaction) => (
             <button
               key={reaction.reaction_type}
-              className={`inline-flex items-center px-1 py-0.5 rounded-full text-xs ${
-                userReaction === reaction.reaction_type
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`inline-flex items-center gap-px px-1 py-0.5 rounded-full text-xs transition-all 
+                ${userReaction === reaction.reaction_type
+                  ? 'bg-blue-100 text-blue-600 shadow-sm' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
               onClick={() => handleAddReaction({ name: reaction.reaction_type, emoji: getEmojiFromType(reaction.reaction_type) })}
               disabled={!isAuthenticated}
             >
-              <span className="mr-0.5">{getEmojiFromType(reaction.reaction_type)}</span>
-              <span>{reaction.count}</span>
+              <span className="mr-0.5 text-sm">{getEmojiFromType(reaction.reaction_type)}</span>
+              <span className="text-[8px] font-semibold">{reaction.count}</span>
             </button>
           ))}
         </div>
@@ -155,14 +155,14 @@ const ReplyReactions = ({ replyId, showPicker, onClose }) => {
       {showPicker && isAuthenticated && (
         <div 
           ref={pickerRef}
-          className="absolute z-10 bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex mt-1 top-6 left-0"
+          className="absolute z-10 bg-white rounded-lg shadow-lg border border-gray-200 p-1.5 flex mt-1 top-6 gap-0.5 animate-fade-scale origin-top"
         >
           {COMMON_REACTIONS.map((reaction) => (
             <button
               key={reaction.name}
-              className={`w-7 h-7 flex items-center justify-center text-lg hover:bg-gray-100 rounded-full transition-transform hover:scale-125 ${
-                userReaction === reaction.name ? 'bg-blue-100' : ''
-              }`}
+              className={`w-6 h-6 flex items-center justify-center text-lg hover:bg-gray-100 rounded-full transition-all 
+                hover:scale-110 hover:shadow-sm
+                ${userReaction === reaction.name ? 'bg-blue-100' : ''}`}
               onClick={() => handleAddReaction(reaction)}
             >
               {reaction.emoji}

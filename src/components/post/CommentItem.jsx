@@ -58,28 +58,32 @@ const CommentItem = ({ comment, onDelete }) => {
     <div className="flex space-x-3 animate-fade-in">
       {/* User avatar */}
       <div className="flex-shrink-0">
-        <img 
-          src={comment.profile_picture ? `http://localhost:5000/uploads/${comment.profile_picture}` : '/default-avatar.png'} 
-          alt={comment.username}
-          className="w-8 h-8 rounded-full object-cover"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = '/default-avatar.png';
-          }}
-        />
+        <div className="avatar w-8 h-8">
+          <div className="avatar-inner">
+            <img 
+              src={comment.profile_picture ? `http://localhost:5000/uploads/${comment.profile_picture}` : '/default-avatar.png'} 
+              alt={comment.username}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = '/default-avatar.png';
+              }}
+            />
+          </div>
+        </div>
       </div>
       
       {/* Comment content */}
       <div className="flex-1 min-w-0">
-        <div className="bg-gray-100 rounded-lg p-3 relative group">
+        <div className="bg-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-all duration-200 relative group">
           <div className="flex justify-between items-start">
-            <p className="font-medium text-gray-900 text-sm">{comment.username}</p>
+            <p className="font-medium text-gray-900 text-sm hover:text-blue-600 cursor-pointer transition-colors">{comment.username}</p>
             
             {/* Delete button (visible only to comment author) */}
             {user && (user.id === comment.user_id) && (
               <button 
                 onClick={() => onDelete(comment.id)}
-                className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full"
+                className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-50"
                 aria-label="Delete comment"
               >
                 <TrashIcon className="h-4 w-4" />
@@ -103,7 +107,7 @@ const CommentItem = ({ comment, onDelete }) => {
               {/* Reply button */}
               <button 
                 onClick={() => setShowReplyForm(!showReplyForm)}
-                className="text-xs text-gray-500 hover:text-blue-500 flex items-center gap-1"
+                className="text-xs text-gray-500 hover:text-blue-500 flex items-center gap-1 transition-colors px-2 py-1 rounded-full hover:bg-blue-50"
               >
                 <ArrowUturnLeftIcon className="h-3 w-3" />
                 Reply
@@ -112,7 +116,7 @@ const CommentItem = ({ comment, onDelete }) => {
               {/* React button */}
               <button 
                 onClick={() => setShowReactionPicker(!showReactionPicker)}
-                className="text-xs text-gray-500 hover:text-blue-500 flex items-center gap-1"
+                className="text-xs text-gray-500 hover:text-blue-500 flex items-center gap-1 transition-colors px-2 py-1 rounded-full hover:bg-blue-50"
               >
                 <FaceSmileIcon className="h-3 w-3" />
                 React
@@ -122,22 +126,21 @@ const CommentItem = ({ comment, onDelete }) => {
         </div>
         
         {/* Reply count and toggle */}
-        <div className="ml-2 mt-1">
-          {replyCount > 0 ? (
+        {replyCount > 0 && (
+          <div className="ml-2 mt-1.5">
             <button 
               onClick={toggleReplies}
-              className="text-xs text-blue-500 hover:text-blue-700"
+              className="text-xs text-blue-500 hover:text-blue-700 transition-colors flex items-center gap-1"
             >
+              <span className="w-4 h-0.5 bg-gray-200 rounded-full"></span>
               {showReplies ? 'Hide' : 'View'} {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
             </button>
-          ) : (
-            <span className="text-xs text-gray-400">No replies yet</span>
-          )}
-        </div>
+          </div>
+        )}
         
         {/* Reply form */}
         {showReplyForm && (
-          <div className="mt-2 ml-2">
+          <div className="mt-2 ml-2 animate-fade-scale origin-top">
             <CommentReplyForm 
               commentId={comment.id} 
               onReplyAdded={handleReplyAdded}
@@ -148,7 +151,7 @@ const CommentItem = ({ comment, onDelete }) => {
         
         {/* Replies list */}
         {showReplies && (
-          <div className="mt-2 ml-6">
+          <div className="mt-2 ml-6 animate-fade-in">
             <CommentRepliesList commentId={comment.id} />
           </div>
         )}

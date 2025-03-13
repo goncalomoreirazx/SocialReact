@@ -14,6 +14,7 @@ import LoginModal from './auth/LoginModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useMessageNotifications } from '../contexts/MessageNotificationContext';
+import ThemeToggle from './theme/ThemeToggle';
 import Search from './Search';
 
 function Navbar() {
@@ -75,11 +76,11 @@ function Navbar() {
   // Navigation links renderer for DRY code
   const renderNavLinks = (isMobile = false) => {
     const baseClasses = isMobile 
-      ? "flex items-center gap-3 w-full p-3 rounded-lg hover:bg-blue-50 transition-colors"
-      : "nav-link text-gray-600 relative";
+      ? "flex items-center gap-3 w-full p-3 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900 transition-colors"
+      : "nav-link text-gray-600 dark:text-gray-300 relative";
   
-    const baseIconClasses = isMobile ? "h-6 w-6 text-blue-500" : "h-6 w-6";
-    const textClasses = isMobile ? "text-gray-700" : "hidden md:block";
+    const baseIconClasses = isMobile ? "h-6 w-6 text-blue-500 dark:text-blue-400" : "h-6 w-6";
+    const textClasses = isMobile ? "text-gray-700 dark:text-gray-200" : "hidden md:block";
     
     return (
       <>
@@ -101,7 +102,7 @@ function Navbar() {
               </div>
               <span className={textClasses}>Friends</span>
               {friendRequests > 0 && isMobile && (
-                <span className="ml-auto bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
+                <span className="ml-auto bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 text-xs px-2 py-1 rounded-full">
                   {friendRequests} new
                 </span>
               )}
@@ -121,7 +122,7 @@ function Navbar() {
               </div>
               <span className={textClasses}>Messages</span>
               {unreadCount > 0 && isMobile && (
-                <span className="ml-auto bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
+                <span className="ml-auto bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 text-xs px-2 py-1 rounded-full">
                   {unreadCount} unread
                 </span>
               )}
@@ -168,7 +169,7 @@ function Navbar() {
 
   return (
     <>
-      <nav className="bg-white shadow-md sticky top-0 z-50">
+      <nav className="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-50 transition-colors duration-200">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo and Desktop Search */}
@@ -184,22 +185,24 @@ function Navbar() {
             </div>
             
             {/* Desktop Navigation */}
-            <div className="hidden md:flex space-x-1">
+            <div className="hidden md:flex items-center space-x-1">
               {renderNavLinks()}
+              <ThemeToggle className="ml-1" />
             </div>
             
             {/* Mobile Menu Button */}
-            <div className="md:hidden">
+            <div className="md:hidden flex items-center">
+              <ThemeToggle className="mr-1" />
               <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                 aria-expanded={isMobileMenuOpen}
                 aria-label="Toggle menu"
               >
                 {isMobileMenuOpen ? (
-                  <XMarkIcon className="h-6 w-6 text-gray-700" />
+                  <XMarkIcon className="h-6 w-6 text-gray-700 dark:text-gray-300" />
                 ) : (
-                  <Bars3Icon className="h-6 w-6 text-gray-700" />
+                  <Bars3Icon className="h-6 w-6 text-gray-700 dark:text-gray-300" />
                 )}
               </button>
             </div>
@@ -211,7 +214,7 @@ function Navbar() {
       {isMobileMenuOpen && (
         <div 
           ref={mobileMenuRef}
-          className="md:hidden fixed top-16 inset-x-0 z-40 bg-white shadow-lg border-t border-gray-100 animate-fade-scale origin-top"
+          className="md:hidden fixed top-16 inset-x-0 z-40 bg-white dark:bg-gray-800 shadow-lg border-t border-gray-100 dark:border-gray-700 animate-fade-scale origin-top transition-colors duration-200"
           style={{ maxHeight: 'calc(100vh - 4rem)', overflowY: 'auto' }}
         >
           <div className="p-4">
